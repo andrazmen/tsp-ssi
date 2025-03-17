@@ -105,10 +105,37 @@ Start docker container:
 ./manage logs
 ```
 
+## Running a code
+## Starting aca-py agents
+```bash
+source .venv_aca-py/bin/activate
+
+aca-py start --arg-file args/test1.yaml
+aca-py start --arg-file args/test2.yaml
+```
+
+## Starting von-network and indy tails server
+```bash
+cd von-network
+
+./manage start 193.138.1.21 WEB_SERVER_HOST_PORT=80 "LEDGER_INSTANCE_NAME=My Ledger" --logs
+```
+
+```bash
+cd indy-tails-server/docker
+
+./manage start 193.138.1.21 --logs
+```
+
+## Starting controller
+```bash
+source .venv_cloudcontroller/bin/activate
+
+python3 test1.py
+```
 
 ## TODO
-- briši Flask iz requierements.txt (tam naj bo samo aca-py), ki gre v .venv_cloudcontroller
-- briši env za von-network in tails-server, ker se jih zaganja v dockerju
+- (lokalno) briši env za von-network in tails-server, ker se jih zaganja v dockerju
 - razmisli, če bi se cloudcontroller tudi instaliralo kar iz pip package-a (so potrebne modifikacije kode?)
 - controller ne more hkrati zaganjati aca-py in cloudcontrollerja, če sta v različnih .venv (<s>se jih da v isti env?</s> Problem ker je treba downgradad aiohttp na 3.9.4 ker errorji..)
 - aca-py je trenutno verzije 1.1.1, potrebno nadgradit

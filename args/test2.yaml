@@ -15,12 +15,12 @@ debug-connections: true
 debug-credentials: true
 debug-presentations: true
 #debug-webhooks: true
-#invite: false #OOB invitation (QR)
-#connections-invite: true #URL invitation
-#invite-label: test-invitation
-#invite-multi-use: false
-#invite-public: false
-#invite-metadata-json: "<metadata-json>"
+invite: true #OOB invitation (URL)
+#connections-invite: true #connection protocol invitation
+invite-label: test1-invitation
+invite-multi-use: true
+#invite-public: true #all created invitations will use public DID 
+invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
