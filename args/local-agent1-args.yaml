@@ -1,0 +1,27 @@
+label: Alice
+inbound-transport:
+- [http, 0.0.0.0, 8020]
+outbound-transport: http
+admin-insecure-mode: true
+admin: [0.0.0.0, 8021]
+genesis-url: http://193.138.1.21/genesis
+no-ledger: true #WITHOUT LEDGER
+seed: Alice000000000000000000000000000
+wallet-key: secret
+wallet-name: Alice
+wallet-type: askar
+wallet-storage-type: default
+endpoint: http://localhost:8020
+public-invites: true
+requests-through-public-did: true
+auto-provision: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-respond-messages: true
+auto-respond-credential-proposal: true
+auto-respond-credential-request: true
+auto-ping-connection: true
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
+debug-webhooks: true

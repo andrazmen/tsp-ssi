@@ -1,0 +1,15 @@
+label: CEM
+inbound-transport:
+- [http, 0.0.0.0, 8020]
+outbound-transport: http
+admin-insecure-mode: true
+admin: [0.0.0.0, 8021]
+no-ledger: true
+seed: CEM00000000000000000000000000000
+wallet-local-did: true
+wallet-key: secret
+wallet-name: CEM
+wallet-type: askar
+wallet-storage-type: default
+endpoint: http://localhost:8020
+auto-provision: true

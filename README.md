@@ -2,12 +2,7 @@
 Clone repository:
 
 ```bash
-git clone TODO
-```
-
-Change directory:
-```bash
-cd TODO
+git clone https://git.e5.ijs.si/andrazm/tsp-ssi.git
 ```
 
 ## A Cloud Agent Python
@@ -41,7 +36,7 @@ Change directory:
 cd aries-cloudcontroller-python/
 ```
 
-Install requirements and package in editable mode:
+Install requirements and package in editable mode (For now, in future it will probably be installed directly, not in editable mode):
 ```bash
 pip install -r requirements.txt 
 pip install --no-cache-dir -e .
