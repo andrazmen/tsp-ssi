@@ -1,0 +1,1 @@
+**Schema attributes:** ["authorizer_id", "authorizer_role", "authorizee_id", "authorizee_role", "power_consumption", "power_forecast", "flexibility", "time_slot", "control_type", "description", "issue_datetime", "authorization_start", "authorization_end", "credential_type"]

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sys
+import threading
 from quart import Quart, request, jsonify
 from aries_cloudcontroller import (
     AcaPyClient,
@@ -16,6 +17,10 @@ from services.wallet import (get_dids, create_did, get_public_did, assign_public
 from services.out_of_band import (create_invitation, receive_invitation)
 from services.connections import get_connections
 from services.did_exchange import (accept_invitation, accept_request)
+from services.basic_message import send_message
+from services.schemas import (get_schemas, get_schema, publish_schema)
+from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
+from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
 
 app = Quart(__name__)
 
@@ -39,6 +44,7 @@ async def startup():
         print(f"Error creating client: {e}")
         sys.exit(1)
 
+    # Create public invitation
     #print("Creating public invitation...")
     #asyncio.create_task(process_create_invitation(client))
     
@@ -46,23 +52,31 @@ async def startup():
 @app.while_serving
 async def serving():
     print("Starting CLI...")
-    task = loop.create_task(cli())  
+    
+    stop_event = asyncio.Event()
+    cli_task = asyncio.create_task(cli(stop_event))
+    #task = loop.create_task(cli())  
 
     try:
        yield
 
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            print("CLI task cancelled.")
+        print("Shutting down CLI...")
+        stop_event.set()
+        await cli_task
+        print("CLI stopped.")
+        #task.cancel()
+        #try:
+            #await task
+        #except asyncio.CancelledError:
+            #print("CLI task cancelled.")
 
 # Shut down controller
 @app.after_serving
 async def shutdown():
-    await client.close()  
-    print("Client closed.")
+    if client:
+        await client.close()  
+        print("Client closed.")
 
 # Webhooks listeners
 @app.route('/webhooks/topic/out_of_band/', methods=['POST'])
@@ -112,9 +126,15 @@ async def handle_basicmsg_webhook():
 
     return jsonify({"status": "success"}), 200
 
+@app.route('/webhooks/topic/issue_credential/', methods=['POST'])
+async def handle_credential_webhook():
+    event_data = await request.get_json()
+    print("Received VC Webhook:", event_data, "\n")
+
+    return jsonify({"status": "success"}), 200
 
 # Webhook functions
-async def process_create_invitation():
+async def process_create_invitation(client):
     try:
         result = await create_invitation(client)
         global invitation_url
@@ -137,52 +157,26 @@ async def process_request(event_data):
     except Exception as e:
         print(f"Error processing request: {e}")
 
-# Controller functions
-
-# Server
-async def check_agent():
-    result = await client.server.check_liveliness()
-
-    print(result)
-    return result
-
 # CLI
-async def cli():
+async def cli(stop_event: asyncio.Event):
     await asyncio.sleep(2)  
     print("\nType 'exit' to quit CLI.")
-    #try: # IF I WANT TO SHUT DOWN CLI WITH ^C
-    while True:
-        command = input("\n>>> ").strip()
+    
+    while not stop_event.is_set():
+        command = await asyncio.to_thread(input, "\n>>> ")
 
+        # EXIT
         if command.lower() == "exit":
             print("Exiting CLI... ACA-Py controller will stop if you pressed ^C, otherwise it is still running.")
+            stop_event.set()
             break
-        if command == "":
-            continue
-        elif command.startswith("invitation"):
-            print("Enter invitation URL:")
-            try:
-                url = input()
-                encoded_invitation = extract_oob(url)
-                decoded_invitation = decode(encoded_invitation)
-                result = json.loads(decoded_invitation)  
-                await receive_invitation(client, result)
-            except Exception as e:
-                print(f"Error processing invitation: {e}")
-        elif command.startswith("connections"):
-            try:
-                result = await get_connections(client)
-                conns_dict = result.to_dict()
-                conns = conns_dict["results"]
-                for c in conns:
-                   print(c, "\n")
-            except Exception as e:
-                print(f"Error getting connections: {e}")
+
+        # WALLET    
         elif command.startswith("dids"):
             try:
                 result = await get_dids(client)
                 for d in result:
-                   print(d, "\n")
+                    print(d, "\n")
             except Exception as e:
                 print(f"Error getting DIDs: {e}")
         elif command.startswith("create did"):
@@ -212,22 +206,201 @@ async def cli():
                 print(result)
             except Exception as e:
                 print(f"Error getting public DID: {e}")
-        else:
-            print("Unknown command. Try: invitation, connections")
-    # except KeyboardInterrupt:
-    #print("\nProgram interrupted. Exiting CLI and shutting down ACA-Py controller...")
 
+        # OOB
+        elif command.startswith("invitation"):
+            print("Enter invitation URL:")
+            try:
+                url = input()
+                encoded_invitation = extract_oob(url)
+                decoded_invitation = decode(encoded_invitation)
+                result = json.loads(decoded_invitation)  
+                await receive_invitation(client, result)
+            except Exception as e:
+                print(f"Error processing invitation: {e}")
+
+        # CONNECTIONS
+        elif command.startswith("connections"):
+            try:
+                result = await get_connections(client)
+                conns_dict = result.to_dict()
+                conns = conns_dict["results"]
+                for c in conns:
+                   print(c, "\n")
+            except Exception as e:
+                print(f"Error getting connections: {e}")
+
+        # BASIC MESSAGE
+        elif command.startswith("message"):
+            print("Enter connection ID:")
+            try:
+                conn_id = input()
+                print("Enter message:")
+                message = input()
+                result = await send_message(client, conn_id, message)
+                print("Message sent:", result)
+            except Exception as e:
+                print(f"Error sending message: {e}")
+
+        # SCHEMA    
+        elif command.lower() == "schemas":
+            try:
+                print("Enter schema issuer DID:")
+                did = input()
+                if did:
+                    schema_issuer_did = did
+                else:
+                    schema_issuer_did = None
+                print("Enter schema name:")
+                name = input()
+                if name:
+                    schema_name = name
+                else:
+                    schema_name = None
+                print("Enter schema version:")
+                version = input()
+                if version:
+                    schema_version = version
+                else:
+                    schema_version = None
+                result = await get_schemas(client, schema_issuer_did, schema_name, schema_version)
+                print("\n", result)
+            except Exception as e:
+                print(f"Error getting schemas: {e}")
+        elif command.lower() == "schema":
+            print("Enter schema ID:")
+            try:
+                schema_id = input()
+                result = await get_schema(client, schema_id)
+                print(f"Schema: {result.var_schema}")
+            except Exception as e:
+                print(f"Error getting schema: {e}")
+        elif command.lower() == "publish schema":
+            print("Enter list of schema attributes:")
+            try:
+                attributes = json.loads(input())
+                print("Fetching current public DID...")
+                res = await get_public_did(client)
+                issuer_did = res["did"]
+                print("Enter schema name:")
+                schema_name = input()
+                print("Enter schema version:")
+                schema_version = input()
+                result = await publish_schema(client, issuer_did, attributes, schema_name, schema_version)
+                print(f"Schema created: {result}")
+            except Exception as e:
+                print(f"Error publishing schema: {e}")   
+
+        # CREDENTIAL DEFINITION
+        elif command.lower() == "cred defs":
+            try:
+                print("Enter issuer DID:")
+                did = input()
+                if did:
+                    issuer_id = did
+                else:
+                    issuer_id = None
+                print("Enter schema ID:")
+                id = input()
+                if id:
+                    schema_id = id
+                else:
+                    schema_id = None
+                print("Enter schema name:")
+                name = input()
+                if name:
+                    schema_name = name
+                else:
+                    schema_name = None
+                print("Enter schema version:")
+                version = input()
+                if version:
+                    schema_version = version
+                else:
+                    schema_version = None
+                result = await get_cred_defs(client, issuer_id, schema_id, schema_name, schema_version)
+                print(f"Credential definitions: {result}")
+            except Exception as e:
+                print(f"Error getting credential definitions: {e}")
+        elif command.lower() == "cred def":
+            print("Enter credential definition ID:")
+            try:
+                cred_def_id = input()
+                result = await get_cred_def(client, cred_def_id)
+                print(f"Credential definition: {result}")
+            except Exception as e:
+                print(f"Error getting credential definition: {e}")
+        elif command.lower() == "create cred def":
+            try:
+                print("Fetching current public DID...")
+                res = await get_public_did(client)
+                issuer_id = res["did"]
+                print("Enter schema ID:")
+                schema_id = input()
+                result = await create_cred_def(client, issuer_id, schema_id)
+                print(f"Credential definition created: {result}")
+            except Exception as e:
+                print(f"Error creating credential definition: {e}")
+        
+        # REVOCATION
+        elif command.lower() == "active rev reg":
+            try:
+                print("Enter credential definition ID:")
+                cred_def_id = input()
+                result = await get_active_rev_reg(client, cred_def_id)
+                print(f"Active revocation registry: {result}")
+            except Exception as e:
+                print(f"Error getting active revocation registry: {e}")
+        elif command.lower() == "rev reg issued":
+            try:
+                print("Enter revocation registry ID:")
+                rev_reg_id = input()
+                result = await get_rev_reg_issued(client, rev_reg_id)
+                print(f"Number of issued credentials : {result}")
+            except Exception as e:
+                print(f"Error getting number of issued credentials: {e}")
+        elif command.lower() == "rev reg issued details":
+            try:
+                print("Enter revocation registry ID:")
+                rev_reg_id = input()
+                result = await get_rev_reg_issued_details(client, rev_reg_id)
+                print(f"Details of issued credentials : {result}")
+            except Exception as e:
+                print(f"Error getting details of issued credentials: {e}")
+        elif command.lower() == "rev regs":
+            try:
+                print("Enter credential definition ID:")
+                cred_def_id = input()
+                result = await get_rev_regs(client, cred_def_id)
+                print(f"Revocation registries : {result}")
+            except Exception as e:
+                print(f"Error getting revocation registries: {e}")
+        elif command.lower() == "rev reg":
+            try:
+                print("Enter revocation registry ID:")
+                rev_reg_id = input()
+                result = await get_rev_reg(client, rev_reg_id)
+                print(f"Revocation registry : {result}")
+            except Exception as e:
+                print(f"Error getting revocation registry: {e}")
+        elif command.lower() == "revoke":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                print("Enter thread ID:")
+                thread_id = input()
+                print("Enter comment:")
+                comment = input()
+                result = await revoke(client, comment, conn_id, cred_ex_id, thread_id)
+                print(f"Credential revoked: {result}")
+            except Exception as e:
+                print(f"Error revoking credential: {e}")
+
+        else:
+            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke")
+        
 # Main
 if __name__ == "__main__":
-    # Start the Quart app with asyncio loop
-    #loop = asyncio.get_event_loop()
-    #loop.run_until_complete(app.run_task(host='0.0.0.0', port=5000))
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    # Start CLI
-    #loop.create_task(cli())  
-
-    # Start the Quart webhook server with asyncio loop
-    loop.run_until_complete(app.run_task(host='0.0.0.0', port=5000, debug=True))
+    asyncio.run(app.run_task(host='0.0.0.0', port=5000, debug=True))

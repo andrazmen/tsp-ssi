@@ -5,7 +5,7 @@ admin: [0.0.0.0, 8031]
 admin-insecure-mode: true #without API-key
 #no-receive-invites: false
 #help-link: <help-url>
-#webhook-url: http://localhost:5000/webhooks
+webhook-url: http://localhost:5050/webhooks
 #admin-client-max-request-size: ADMIN_CLIENT_MAX_REQUEST_SIZE
 #DEBUGGER
 #debug: false
@@ -14,24 +14,24 @@ admin-insecure-mode: true #without API-key
 debug-connections: true
 debug-credentials: true
 debug-presentations: true
-#debug-webhooks: true
-invite: true #OOB invitation (URL)
+debug-webhooks: true
+#invite: true #OOB invitation (URL)
 #connections-invite: true #connection protocol invitation
-invite-label: test1-invitation
-invite-multi-use: true
+#invite-label: test2-invitation
+#invite-multi-use: true
 #invite-public: true #all created invitations will use public DID 
-invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
+#invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
-auto-respond-messages: true
-auto-respond-credential-proposal: true
-auto-respond-credential-offer: true
-auto-respond-credential-request: true
-auto-respond-presentation-proposal: true
-auto-respond-presentation-request: true
+#auto-respond-messages: true
+#auto-respond-credential-proposal: true
+#auto-respond-credential-offer: true
+#auto-respond-credential-request: true
+#auto-respond-presentation-proposal: true
+#auto-respond-presentation-request: true
 auto-store-credential: true
-auto-verify-presentation: true
+#auto-verify-presentation: true
 #DISCOVER FEATURES
 #auto-disclose-features: false
 #disclose-features-list: "<yaml-file-path>"
