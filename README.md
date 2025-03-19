@@ -145,3 +145,7 @@ python3 test1.py
 - stestiraj vse revocation funkcije
 - stestiraj /revoke (kaj potrebuješ za revoke - cred_ex_id, ali cred-rev_id in rev_reg_id)
 - preveri, če je potreben v praksi še kakšen endpoint iz revocation APIjev
+
+- issue VC: preveri parametre sporočil offer, request, proposal... predvsem attributes in replacement_id (v smislu, da nov VC zamenja starega). Nastavljeno, da je flow automatic, če issuer začne z offer in ga holder sprejme.. v primeru, da se začne s proposal iz holderjeve strani, potem moramo ročno? (issue_atomated avtomatizira celoten flow, uporabno?)
+
+- get records, connections... omogoča filtriranje, zaenkrat requestas vse

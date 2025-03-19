@@ -21,6 +21,7 @@ from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
 from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
 from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
+from services.issue_credential import (send_proposal, send_offer, send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record)
 
 app = Quart(__name__)
 
@@ -398,8 +399,102 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error revoking credential: {e}")
 
+        # ISSUE VC
+        elif command.lower() == "vc records":
+            try:
+                result = await get_records(client)
+                print(f"Credential exchange records: {result}")
+            except Exception as e:
+                print(f"Error getting credential exchange records: {e}")
+        elif command.lower() == "vc record":
+            try:
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                result = await get_record(client, cred_ex_id)
+                print(f"Credential exchange record: {result}")
+            except Exception as e:
+                print(f"Error gettting credential exchange record: {e}")
+        elif command.lower() == "delete vc record":
+            try:
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                result = await delete_record(client, cred_ex_id)
+                print(f"Credential exchange record deleted: {result}")
+            except Exception as e:
+                print(f"Error deleting credential exchange record: {e}")
+        elif command.lower() == "proposal":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                print("Enter schema name")
+                schema_name = input()
+                result = await send_proposal(client, conn_id, schema_name)
+                print(f"Credential proposal sent: {result}")
+            except Exception as e:
+                print(f"Error sending credential proposal: {e}")
+        elif command.lower() == "offer":
+            try:
+                print("Type '0' for offer in reference to proposal or '1' for free offer:" )
+                type = input()
+                if type == "0":
+                    public_did = await get_public_did(client)
+                    issuer_id = public_did["did"]
+                    print("Enter credential exchange ID:")
+                    cred_ex_id = input()
+                    print("Enter attributes list:")
+                    attributes = input()
+                    print("Enter credential definition ID:")
+                    cred_def_id = input()
+                    print("Enter schema ID:")
+                    schema_id = input()
+                    result = await send_offer(client, cred_ex_id, attributes, cred_def_id, issuer_id, schema_id)
+                elif type == "1":
+                    public_did = await get_public_did(client)
+                    issuer_id = public_did["did"]
+                    print("Enter connection ID:")
+                    conn_id = input()
+                    print("Enter attributes list:")
+                    attributes = input()
+                    print("Enter credential definition ID:")
+                    cred_def_id = input()
+                    print("Enter schema ID:")
+                    schema_id = input()
+                    result = await send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id)
+                else:
+                    print("Invalid offer")
+            except Exception as e:
+                print(f"Error sending credential offer: {e}")
+        elif command.lower() == "vc request":
+            try:
+                public_did = await get_public_did(client)
+                holder_did = public_did["did"]
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                result = await send_request(client, cred_ex_id, holder_did)
+                print(f"Credential request sent: {result}")
+            except Exception as e:
+                print(f"Error sending credential request: {e}")
+        elif command.lower() == "vc":
+            try:
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                result = await issue_credential(client, cred_ex_id)
+                print(f"Credential issued: {result}")
+            except Exception as e:
+                print(f"Error issuing credential: {e}")
+        elif command.lower() == "problem report":
+            try:
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                print("Enter report description:")
+                description = input()
+                result = await report_problem(client, cred_ex_id, description)
+                print(f"Problem report sent: {result}")
+            except Exception as e:
+                print(f"Error sending problem report: {e}")
+
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke")
+            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, proposal, , vc record, vc records, delete vc record, offer, vc request, vc, problem report")
         
 # Main
 if __name__ == "__main__":
