@@ -1,5 +1,6 @@
 from aries_cloudcontroller import DIDCreate
 
+## DIDS
 async def get_dids(client):
     result = await client.wallet.get_dids()
     dids_dict = result.to_dict()
@@ -30,5 +31,36 @@ async def assign_public_did(client, did):
     )
     did_dict = res.to_dict()
     result = did_dict["result"]
+
+    return result
+
+## CREDENTIALS
+async def delete_credential(client, cred_id):
+    result = await client.credentials.delete_record(
+        credential_id = cred_id
+    )
+
+    return result
+
+async def get_credential(client, cred_id):
+    result = await client.credentials.get_record(
+        credential_id = cred_id
+    )
+
+    return result
+
+async def get_credentials(client):
+    result = await client.credentials.get_records()
+    vcs_dict = result.to_dict()
+    vcs = vcs_dict["results"]
+
+    return vcs
+
+async def get_revocation_status(client, cred_id):
+    result = await client.credentials.get_revocation_status(
+        credential_id = cred_id
+        #var_from
+        #to
+    )
 
     return result

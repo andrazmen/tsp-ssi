@@ -30,7 +30,7 @@ debug-webhooks: true
 #auto-respond-credential-request: true
 #auto-respond-presentation-proposal: true
 #auto-respond-presentation-request: true
-auto-store-credential: true
+#auto-store-credential: true
 #auto-verify-presentation: true
 #DISCOVER FEATURES
 #auto-disclose-features: false

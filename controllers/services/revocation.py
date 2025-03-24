@@ -42,10 +42,10 @@ async def revoke(client, comment, conn_id, cred_ex_id, thread_id):
         body = RevokeRequestSchemaAnoncreds(
             comment = comment,
             connection_id = conn_id,
-            cred_ex_id = cred_ex_id, # ALI TA ALI cred-rev_id in rev_reg_id
+            cred_ex_id = cred_ex_id, # ALI TA ALI cred_rev_id in rev_reg_id
             #cred_rev_id = cred_rev_id,
             notify = True,
-            notify_version = "v1.0",
+            notify_version = "v1_0",
             publish = True, 
             #rev_reg_id = rev_reg_id,
             thread_id = thread_id

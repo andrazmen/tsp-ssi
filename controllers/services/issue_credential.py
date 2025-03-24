@@ -1,5 +1,7 @@
 from aries_cloudcontroller import (V20CredIssueRequest, V20CredExFree, V20CredPreview, V20CredAttrSpec, V20CredFilter, V20CredFilterAnoncreds, V20CredIssueProblemReportRequest, V20CredBoundOfferRequest, V20CredOfferRequest, V20CredRequestRequest, V20CredRequestFree, V20CredFilterLDProof, V20CredStoreRequest)
 
+import json
+
 # Remove an existing credential exchange record
 async def delete_record(client, cred_ex_id):
     result = await client.issue_credential_v2_0.delete_record(
@@ -17,15 +19,15 @@ async def get_record(client, cred_ex_id):
     return result
 
 # Fetch all credential exchange records
-async def get_records(client):
+async def get_records(client, connection_id, role, state):
     result = await client.issue_credential_v2_0.get_records(
-        #connection_id = conn_id,
+        connection_id = connection_id,
         #descending,
         #limit,
         #offset,
         #order_by,
-        #role,
-        #state,
+        role = role,
+        state = state
         #thread_id,
     )
 
@@ -43,6 +45,7 @@ async def issue_credential(client, cred_ex_id):
     return result
 
 # Send holder a credential (automated)
+"""
 async def issue_credential_automated(client):
     result = await client.issue_credential_v2_0.issue_credential_automated(
         body = V20CredExFree(
@@ -71,13 +74,13 @@ async def issue_credential_automated(client):
                 #vc_di
             ),
             replacement_id,
-            trace = True,
+            trace = True
             #verification_method
         )
     )
 
     return result
-
+"""
 # Send a problem report for credential exchange
 async def report_problem(client, cred_ex_id, description):
     result = await client.issue_credential_v2_0.report_problem(
@@ -92,33 +95,7 @@ async def report_problem(client, cred_ex_id, description):
 # Send holder a credential offer in reference to a proposal with preview
 async def send_offer(client, cred_ex_id, attributes, cred_def_id, issuer_id, schema_id):
     result = await client.issue_credential_v2_0.send_offer(
-        cred_ex_id = cred_ex_id,
-        body = V20CredBoundOfferRequest(
-            counter_preview = V20CredPreview(
-                type = "issue-credential/2.0/credential-preview",
-                #attributes = [V20CredAttrSpec(
-                #    #mime_type,
-                #    name = name,
-                #    value = value
-                #),
-                #V20CredAttrSpec(
-                #)]
-                attributes = attributes
-            ),
-            filter = V20CredFilter(
-                anoncreds = V20CredFilterAnoncreds(
-                    cred_def_id = cred_def_id,
-                    issuer_id = issuer_id,
-                    schema_id = schema_id
-                    #schema_issuer_id,
-                    #schema_name,
-                    #schema_version
-                )
-                #indy,
-                #ld_proof,
-                #vc_di
-            )
-        )
+        cred_ex_id = cred_ex_id
     )
 
     return result
@@ -138,13 +115,28 @@ async def send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, s
                 #    name,
                 #    value
                 #)
-                attributes = attributes
+                attributes = [
+                    V20CredAttrSpec(name="authorizer_id", value="did:sov:WFkQumWz9ok6UXEKP496UA"),
+                    V20CredAttrSpec(name="authorizer_role", value="CEM"),
+                    V20CredAttrSpec(name="authorizee_id", value="did:sov:KzW7Y2H3yVdfJwicwPyreo"),
+                    V20CredAttrSpec(name="authorizee_role", value="aggregator"),
+                    V20CredAttrSpec(name="power_consumption", value="10462"),
+                    V20CredAttrSpec(name="power_forecast", value="12697"),
+                    V20CredAttrSpec(name="flexibility", value="500"),
+                    V20CredAttrSpec(name="time_slot", value="monday"),
+                    V20CredAttrSpec(name="control_type", value="power-profile-based-control"),
+                    V20CredAttrSpec(name="description", value=""),
+                    V20CredAttrSpec(name="issue_datetime", value="2025-03-24T13:00:00Z"),
+                    V20CredAttrSpec(name="authorization_start", value="2025-03-25T12:00:00Z"),
+                    V20CredAttrSpec(name="authorization_end", value="2025-04-25T12:00:00Z"),
+                    V20CredAttrSpec(name="credential_type", value="Authorization Credential")
+                ]
             ),
             filter = V20CredFilter(
                 anoncreds = V20CredFilterAnoncreds(
-                    cred_def_id,
-                    issuer_id,
-                    schema_id
+                    cred_def_id = cred_def_id,
+                    issuer_id = issuer_id,
+                    schema_id = schema_id
                     #schema_issuer_id,
                     #schema_name,
                     #schema_version
@@ -161,7 +153,7 @@ async def send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, s
     return result
 
 # Send issuer a credential proposal
-async def send_proposal(client, conn_id, schema_id):
+async def send_proposal(client, conn_id, schema_name):
     result = await client.issue_credential_v2_0.send_proposal(
         body = V20CredExFree(
             auto_remove = False,
@@ -179,9 +171,9 @@ async def send_proposal(client, conn_id, schema_id):
                 anoncreds = V20CredFilterAnoncreds(
                     #cred_def_id,
                     #issuer_id,
-                    schema_id
+                    schema_id = schema_name
                     #schema_issuer_id,
-                    #schema_name
+                    #schema_name = schema_name
                     #schema_version
                 )
                 #indy,
@@ -230,12 +222,12 @@ async def send_request_free(client):
 
 """
 # Store a received credential
-async def store_credential(client):
+async def store_credential(client, cred_ex_id):
     result = await client.issue_credential_v2_0.store_credential(
-        cred_ex_id,
-        body = V20CredStoreRequest(
-            credential_id
-        )
+        cred_ex_id
+        #body = V20CredStoreRequest(
+        #    credential_id
+        #)
     )
 
     return result

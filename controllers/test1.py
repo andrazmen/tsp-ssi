@@ -13,7 +13,7 @@ from aries_cloudcontroller import (
 )
 
 from utils.tools import (decode, extract_oob)
-from services.wallet import (get_dids, create_did, get_public_did, assign_public_did)
+from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation)
 from services.connections import get_connections
 from services.did_exchange import (accept_invitation, accept_request)
@@ -21,7 +21,7 @@ from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
 from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
 from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
-from services.issue_credential import (send_proposal, send_offer, send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record)
+from services.issue_credential import (send_proposal, send_offer, send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record, store_credential)
 
 app = Quart(__name__)
 
@@ -127,10 +127,24 @@ async def handle_basicmsg_webhook():
 
     return jsonify({"status": "success"}), 200
 
-@app.route('/webhooks/topic/issue_credential/', methods=['POST'])
+@app.route('/webhooks/topic/issue_credential_v2_0/', methods=['POST'])
 async def handle_credential_webhook():
     event_data = await request.get_json()
     print("Received VC Webhook:", event_data, "\n")
+
+    return jsonify({"status": "success"}), 200
+
+@app.route('/webhooks/topic/issuer_cred_rev/', methods=['POST'])
+async def handle_revocation_webhook():
+    event_data = await request.get_json()
+    print("Received revocation Webhook:", event_data, "\n")
+
+    return jsonify({"status": "success"}), 200
+
+@app.route('/webhooks/topic/problem_report/', methods=['POST'])
+async def handle_problem_report_webhook():
+    event_data = await request.get_json()
+    print("Received problem report Webhook:", event_data, "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -223,7 +237,19 @@ async def cli(stop_event: asyncio.Event):
         # CONNECTIONS
         elif command.startswith("connections"):
             try:
-                result = await get_connections(client)
+                print("Enter connection state:")
+                conn_state = input()
+                if conn_state:
+                    state = conn_state
+                else:
+                    state = None
+                print("Enter their DID:")
+                did = input()
+                if did:
+                    their_did = did
+                else:
+                    their_did = None
+                result = await get_connections(client, state, their_did)
                 conns_dict = result.to_dict()
                 conns = conns_dict["results"]
                 for c in conns:
@@ -387,7 +413,7 @@ async def cli(stop_event: asyncio.Event):
         elif command.lower() == "revoke":
             try:
                 print("Enter connection ID:")
-                connection_id = input()
+                conn_id = input()
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
                 print("Enter thread ID:")
@@ -402,8 +428,29 @@ async def cli(stop_event: asyncio.Event):
         # ISSUE VC
         elif command.lower() == "vc records":
             try:
-                result = await get_records(client)
-                print(f"Credential exchange records: {result}")
+                print("Enter connection ID:")
+                conn_id = input()
+                if conn_id:
+                    connection_id = conn_id
+                else:
+                    connection_id = None
+                print("Enter credential exchange state (proposal-sent/proposal-received/offer-sent/offer-received/request-sent/request-received/credential-issued/credential-received/done/credential-revoked/abandoned):")
+                cred_ex_state = input()
+                if cred_ex_state:
+                    state = cred_ex_state
+                else:
+                    state = None
+                print("Enter your role in credential exchange record (issuer/holder):")
+                cred_ex_role = input()
+                if cred_ex_role:
+                    role = cred_ex_role
+                else:
+                    role = None
+                result = await get_records(client, connection_id, role, state)
+                records_dict = result.to_dict()
+                records = records_dict["results"]
+                for r in records:
+                   print(r, "\n")
             except Exception as e:
                 print(f"Error getting credential exchange records: {e}")
         elif command.lower() == "vc record":
@@ -474,7 +521,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential request sent: {result}")
             except Exception as e:
                 print(f"Error sending credential request: {e}")
-        elif command.lower() == "vc":
+        elif command.lower() == "issue vc":
             try:
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
@@ -482,7 +529,15 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential issued: {result}")
             except Exception as e:
                 print(f"Error issuing credential: {e}")
-        elif command.lower() == "problem report":
+        elif command.lower() == "store":
+            try:
+                print("Enter credential exchange ID:")
+                cred_ex_id = input()
+                result = await store_credential(client, cred_ex_id)
+                print(f"Credential stored: {result}")
+            except Exception as e:
+                print(f"Error storing credential: {e}")
+        elif command.lower() == "problem":
             try:
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
@@ -492,9 +547,41 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Problem report sent: {result}")
             except Exception as e:
                 print(f"Error sending problem report: {e}")
+        
+        ## VC
+        elif command.lower() == "vcs":
+            try:
+                result = await get_credentials(client)
+                print(f"Stored credentials: {result}")
+            except Exception as e:
+                print(f"Error getting stored credentials: {e}")
+        elif command.lower() == "vc":
+            try:
+                print("Enter credential ID:")
+                cred_id = input()
+                result = await get_credential(client, cred_id)
+                print(f"Stored credential: {result}")
+            except Exception as e:
+                print(f"Error getting stored credential: {e}")
+        elif command.lower() == "rev status":
+            try:
+                print("Enter credential ID:")
+                cred_id = input()
+                result = await get_revocation_status(client, cred_id)
+                print(f"Credential revocation status: {result}")
+            except Exception as e:
+                print(f"Error getting credential revocation status: {e}")
+        elif command.lower() == "delete vc":
+            try:
+                print("Enter credential ID:")
+                cred_id = input()
+                result = await delete_credential(client, cred_id)
+                print(f"Stored credential deleted: {result}")
+            except Exception as e:
+                print(f"Error deleting stored credential: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, proposal, , vc record, vc records, delete vc record, offer, vc request, vc, problem report")
+            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, proposal, , vc record, vc records, delete vc record, offer, vc request, issue vc, store, problem, vcs, vc, rev status, delete vc")
         
 # Main
 if __name__ == "__main__":

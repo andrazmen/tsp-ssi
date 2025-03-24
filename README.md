@@ -149,3 +149,7 @@ python3 test1.py
 - issue VC: preveri parametre sporočil offer, request, proposal... predvsem attributes in replacement_id (v smislu, da nov VC zamenja starega). Nastavljeno, da je flow automatic, če issuer začne z offer in ga holder sprejme.. v primeru, da se začne s proposal iz holderjeve strani, potem moramo ročno? (issue_atomated avtomatizira celoten flow, uporabno?)
 
 - get records, connections... omogoča filtriranje, zaenkrat requestas vse
+
+- revocation: get_rev_reg_issued_details() ne dela. Mislim, da je bug v cloudcontroller kodi
+
+- issue-vc: pošiljanje offerja glede na proposal ne deluje..
