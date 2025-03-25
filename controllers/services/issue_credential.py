@@ -93,13 +93,55 @@ async def report_problem(client, cred_ex_id, description):
     return result
 
 # Send holder a credential offer in reference to a proposal with preview
+"""
 async def send_offer(client, cred_ex_id, attributes, cred_def_id, issuer_id, schema_id):
     result = await client.issue_credential_v2_0.send_offer(
-        cred_ex_id = cred_ex_id
+        cred_ex_id = cred_ex_id,
+        body = V20CredBoundOfferRequest(
+            counter_preview = V20CredPreview(
+                type = "issue-credential/2.0/credential-preview",
+                #attributes = [V20CredAttrSpec(
+                #    #mime_type,
+                #    name = name,
+                #    value = value
+                #),
+                #V20CredAttrSpec(
+                #)]
+                attributes = [
+                    V20CredAttrSpec(name="authorizer_id", value="did:sov:WFkQumWz9ok6UXEKP496UA"),
+                    V20CredAttrSpec(name="authorizer_role", value="CEM"),
+                    V20CredAttrSpec(name="authorizee_id", value="did:sov:KzW7Y2H3yVdfJwicwPyreo"),
+                    V20CredAttrSpec(name="authorizee_role", value="aggregator"),
+                    V20CredAttrSpec(name="power_consumption", value="10462"),
+                    V20CredAttrSpec(name="power_forecast", value="12697"),
+                    V20CredAttrSpec(name="flexibility", value="500"),
+                    V20CredAttrSpec(name="time_slot", value="monday"),
+                    V20CredAttrSpec(name="control_type", value="power-profile-based-control"),
+                    V20CredAttrSpec(name="description", value=""),
+                    V20CredAttrSpec(name="issue_datetime", value="2025-03-24T13:00:00Z"),
+                    V20CredAttrSpec(name="authorization_start", value="2025-03-25T12:00:00Z"),
+                    V20CredAttrSpec(name="authorization_end", value="2025-04-25T12:00:00Z"),
+                    V20CredAttrSpec(name="credential_type", value="Authorization Credential")
+                ]
+            ),
+            filter = V20CredFilter(
+                anoncreds = V20CredFilterAnoncreds(
+                    cred_def_id = cred_def_id,
+                    issuer_id = issuer_id,
+                    schema_id = schema_id
+                    #schema_issuer_id,
+                    #schema_name,
+                    #schema_version
+                )
+                #indy,
+                #ld_proof,
+                #vc_di
+            )
+        )
     )
 
     return result
-
+"""
 # Send holder a credential offer, independent of any proposal
 async def send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id):
     result = await client.issue_credential_v2_0.send_offer_free(
@@ -153,7 +195,8 @@ async def send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, s
     return result
 
 # Send issuer a credential proposal
-async def send_proposal(client, conn_id, schema_name):
+"""
+async def send_proposal(client, conn_id, schema_id):
     result = await client.issue_credential_v2_0.send_proposal(
         body = V20CredExFree(
             auto_remove = False,
@@ -171,7 +214,7 @@ async def send_proposal(client, conn_id, schema_name):
                 anoncreds = V20CredFilterAnoncreds(
                     #cred_def_id,
                     #issuer_id,
-                    schema_id = schema_name
+                    schema_id = schema_id
                     #schema_issuer_id,
                     #schema_name = schema_name
                     #schema_version
@@ -187,7 +230,7 @@ async def send_proposal(client, conn_id, schema_name):
     )
 
     return result
-
+"""
 # Send issuer a credential request
 async def send_request(client, cred_ex_id, holder_did):
     result = await client.issue_credential_v2_0.send_request(

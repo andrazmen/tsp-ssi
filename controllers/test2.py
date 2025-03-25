@@ -21,7 +21,8 @@ from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
 from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
 from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
-from services.issue_credential import (send_proposal, send_offer, send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record, store_credential)
+from services.issue_credential import (send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record, store_credential)
+from services.present_proof import (get_pres_record, get_pres_records, delete_pres_record, get_matching_credentials, send_presentation, send_pres_proposal, send_pres_request, send_pres_request_free, verify_presentation, report_pres_problem)
 
 app = Quart(__name__)
 
@@ -118,6 +119,13 @@ async def handle_conn_webhook():
 
     return jsonify({"status": "success"}), 200
 
+@app.route('/webhooks/topic/connection_reuse_accepted/', methods=['POST'])
+async def handle_reuse_connection_webhook():
+    event_data = await request.get_json()
+    print("Received Connection reuse Webhook:", event_data, "\n")
+
+    return jsonify({"status": "success"}), 200
+
 @app.route('/webhooks/topic/basicmessages/', methods=['POST'])
 async def handle_basicmsg_webhook():
     event_data = await request.get_json()
@@ -131,6 +139,21 @@ async def handle_basicmsg_webhook():
 async def handle_credential_webhook():
     event_data = await request.get_json()
     print("Received VC Webhook:", event_data, "\n")
+
+    if event_data["state"] == "offer-received":
+        cred_ex_id = event_data['cred_ex_id']
+        offer = event_data['cred_offer']
+        print("Received VC offer:", offer['credential_preview'], "with cred_ex_id:", cred_ex_id, "\n")
+    elif event_data["state"] == "credential-received":
+        cred_ex_id = event_data['cred_ex_id']
+        print("Received VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
+
+    return jsonify({"status": "success"}), 200
+
+@app.route('/webhooks/topic/issue_credential_v2_0_anoncreds/', methods=['POST'])
+async def handle_anonCreds_credential_webhook():
+    event_data = await request.get_json()
+    print("Received AnonCreds VC Webhook:", event_data, "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -147,7 +170,6 @@ async def handle_problem_report_webhook():
     print("Received problem report Webhook:", event_data, "\n")
 
     return jsonify({"status": "success"}), 200
-
 
 # Webhook functions
 async def process_create_invitation(client):
@@ -414,7 +436,7 @@ async def cli(stop_event: asyncio.Event):
         elif command.lower() == "revoke":
             try:
                 print("Enter connection ID:")
-                connection_id = input()
+                conn_id = input()
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
                 print("Enter thread ID:")
@@ -429,8 +451,29 @@ async def cli(stop_event: asyncio.Event):
         # ISSUE VC
         elif command.lower() == "vc records":
             try:
-                result = await get_records(client)
-                print(f"Credential exchange records: {result}")
+                print("Enter connection ID:")
+                conn_id = input()
+                if conn_id:
+                    connection_id = conn_id
+                else:
+                    connection_id = None
+                print("Enter credential exchange state (proposal-sent/proposal-received/offer-sent/offer-received/request-sent/request-received/credential-issued/credential-received/done/credential-revoked/abandoned):")
+                cred_ex_state = input()
+                if cred_ex_state:
+                    state = cred_ex_state
+                else:
+                    state = None
+                print("Enter your role in credential exchange record (issuer/holder):")
+                cred_ex_role = input()
+                if cred_ex_role:
+                    role = cred_ex_role
+                else:
+                    role = None
+                result = await get_records(client, connection_id, role, state)
+                records_dict = result.to_dict()
+                records = records_dict["results"]
+                for r in records:
+                   print(r, "\n")
             except Exception as e:
                 print(f"Error getting credential exchange records: {e}")
         elif command.lower() == "vc record":
@@ -449,46 +492,19 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential exchange record deleted: {result}")
             except Exception as e:
                 print(f"Error deleting credential exchange record: {e}")
-        elif command.lower() == "proposal":
-            try:
-                print("Enter connection ID:")
-                conn_id = input()
-                print("Enter schema name:")
-                schema_name = input()
-                result = await send_proposal(client, conn_id, schema_name)
-                print(f"Credential proposal sent: {result}")
-            except Exception as e:
-                print(f"Error sending credential proposal: {e}")
         elif command.lower() == "offer":
             try:
-                print("Type '0' for offer in reference to proposal or '1' for free offer:" )
-                type = input()
-                if type == "0":
-                    public_did = await get_public_did(client)
-                    issuer_id = public_did["did"]
-                    print("Enter credential exchange ID:")
-                    cred_ex_id = input()
-                    print("Enter attributes list:")
-                    attributes = input()
-                    print("Enter credential definition ID:")
-                    cred_def_id = input()
-                    print("Enter schema ID:")
-                    schema_id = input()
-                    result = await send_offer(client, cred_ex_id, attributes, cred_def_id, issuer_id, schema_id)
-                elif type == "1":
-                    public_did = await get_public_did(client)
-                    issuer_id = public_did["did"]
-                    print("Enter connection ID:")
-                    conn_id = input()
-                    print("Enter attributes list:")
-                    attributes = input()
-                    print("Enter credential definition ID:")
-                    cred_def_id = input()
-                    print("Enter schema ID:")
-                    schema_id = input()
-                    result = await send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id)
-                else:
-                    print("Invalid offer")
+                public_did = await get_public_did(client)
+                issuer_id = public_did["did"]
+                print("Enter connection ID:")
+                conn_id = input()
+                print("Enter attributes list:")
+                attributes = input()
+                print("Enter credential definition ID:")
+                cred_def_id = input()
+                print("Enter schema ID:")
+                schema_id = input()
+                result = await send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id)
             except Exception as e:
                 print(f"Error sending credential offer: {e}")
         elif command.lower() == "vc request":
@@ -527,11 +543,14 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Problem report sent: {result}")
             except Exception as e:
                 print(f"Error sending problem report: {e}")
+        
         ## VC
         elif command.lower() == "vcs":
             try:
                 result = await get_credentials(client)
-                print(f"Stored credentials: {result}")
+                print(f"Stored credentials:", "\n")
+                for vc in result:
+                    print(vc, "\n")
             except Exception as e:
                 print(f"Error getting stored credentials: {e}")
         elif command.lower() == "vc":
@@ -558,9 +577,117 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Stored credential deleted: {result}")
             except Exception as e:
                 print(f"Error deleting stored credential: {e}")
+        ## PRESENT VP
+        elif command.lower() == "vp record":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                result = await get_pres_record(client, pres_ex_id)
+                print(f"Presentation exchange record: {result}")
+            except Exception as e:
+                print(f"Error getting presentation exchange record: {e}")
+        elif command.lower() == "vp records":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                if conn_id:
+                    connection_id = conn_id
+                else:
+                    connection_id = None
+                print("Enter presentation exchange state (proposal-sent/proposal-received/request-sent/request-received/presentation-sent/presentation-received/done/abandoned):")
+                pres_ex_state = input()
+                if pres_ex_state:
+                    state = pres_ex_state
+                else:
+                    state = None
+                print("Enter your role in presentation exchange record (issuer/holder):")
+                pres_ex_role = input()
+                if pres_ex_role:
+                    role = pres_ex_role
+                else:
+                    role = None
+                result = await get_pres_records(client, connection_id, role, state)
+                records_dict = result.to_dict()
+                records = records_dict["results"]
+                for r in records:
+                   print(r, "\n")
+            except Exception as e:
+                print(f"Error getting presentation exchange records: {e}")
+        elif command.lower() == "delete vp record":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                result = await delete_pres_record(client, pres_ex_id)
+                print(f"Presentation exchange record deleted: {result}")
+            except Exception as e:
+                print(f"Error deleting presentation exchange record: {e}")
+        elif command.lower() == "matching vc":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                result = await get_matching_credentials(client, pres_ex_id)
+                print(f"Matching credentials: {result}")
+            except Exception as e:
+                print(f"Error getting matching credentials: {e}")
+        elif command.lower() == "vp problem":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                print("Enter report description:")
+                description = input()
+                result = await report_pres_problem(client, pres_ex_id, description)
+                print(f"Problem report sent: {result}")
+            except Exception as e:
+                print(f"Error sending problem report: {e}")
+        elif command.lower() == "send vp":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                result = await send_presentation(client, pres_ex_id)
+                print(f"Presentation sent: {result}")
+            except Exception as e:
+                print(f"Error sending presentation: {e}")
+        elif command.lower() == "vp proposal":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                print("Enter schema name:")
+                schema_name = input()
+                result = await send_pres_proposal(client, connection_id, schema_name)
+                print(f"Presentation proposal sent: {result}")
+            except Exception as e:
+                print(f"Error sending presentation proposal: {e}")
+        elif command.lower() == "vp request":
+            try:
+                print("Type '0' for request in reference to proposal or '1' for free request:" )
+                type = input()
+                if type == "0":
+                    print("Enter presentation exchange ID:")
+                    pres_ex_id = input()
+                    result = await send_pres_request(client, pres_ex_id)
+                    print(f"Request sent: {result}")
+                elif type == "1":
+                    print("Enter connection ID:")
+                    connection_id = input()
+                    print("Enter schema name:")
+                    schema_name = input()
+                    result = await send_pres_request_free(client, connection_id, schema_name)
+                    print(f"Request sent: {result}")
+                else:
+                    print("Invalid request")
+            except Exception as e:
+                print(f"Error sending request: {e}")
+        elif command.lower() == "verify":
+            try:
+                print("Enter presentation exchange ID:")
+                pres_ex_id = input()
+                result = await verify_presentation(client, pres_ex_id)
+                print(f"Presentation verified: {result}")
+            except Exception as e:
+                print(f"Error verifying presentation: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, proposal, vc record, vc records, delete vc record, offer, vc request, issue vc, store, problem, vcs, vc, rev status, delete vc")
+            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp request, verify")
         
 # Main
 if __name__ == "__main__":

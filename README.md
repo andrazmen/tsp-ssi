@@ -152,4 +152,6 @@ python3 test1.py
 
 - revocation: get_rev_reg_issued_details() ne dela. Mislim, da je bug v cloudcontroller kodi
 
-- issue-vc: pošiljanje offerja glede na proposal ne deluje..
+- issue-vc: <s>pošiljanje offerja glede na proposal ne deluje..</s> Težave s proposal - odstranjanje, ker načeloma nima smisla. Holder lahko prosi za offer prek basic message protokola!
+
+- stestiraj present vp: pri tem je nujen proposal, ker drugače verifier sploh ne ve kaj lahko zahteva!
