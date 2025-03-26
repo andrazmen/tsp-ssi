@@ -2,9 +2,9 @@ from aries_cloudcontroller import (InvitationCreateRequest, InvitationMessage)
 
 async def create_invitation(client):
     result = await client.out_of_band.create_invitation(
-        #auto-accept,
+        #auto_accept = True,
         #create-unique_did,
-        multi_use = True,
+        #multi_use = True,
         body=InvitationCreateRequest(
             accept = ["didcomm/aip1", "didcomm/aip2;env=rfc19"],
             alias = "test1",
@@ -27,9 +27,9 @@ async def receive_invitation(client, invitation_msg):
     inv_msg = InvitationMessage.from_dict(invitation_msg)
     result = await client.out_of_band.receive_invitation(
         #alias,
-        #auto-accept,
+        #auto_accept = True,
         #mediation_id,
-        #use_existing_connection
+        #use_existing_connection = True,
         body=inv_msg
     )
 

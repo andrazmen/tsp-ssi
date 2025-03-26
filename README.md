@@ -152,6 +152,10 @@ python3 test1.py
 
 - revocation: get_rev_reg_issued_details() ne dela. Mislim, da je bug v cloudcontroller kodi
 
-- issue-vc: <s>pošiljanje offerja glede na proposal ne deluje..</s> Težave s proposal - odstranjanje, ker načeloma nima smisla. Holder lahko prosi za offer prek basic message protokola!
+- issue-vc: <s>pošiljanje offerja glede na proposal ne deluje..</s> <s>Težave s proposal - odstranjanje, ker načeloma nima smisla. Holder lahko prosi za offer prek basic message protokola!</s> Ja ampak, potem se holder ne more pritoževati na offer s proposal!
 
-- stestiraj present vp: pri tem je nujen proposal, ker drugače verifier sploh ne ve kaj lahko zahteva!
+- <s>stestiraj present vp: pri tem je nujen proposal, ker drugače verifier sploh ne ve kaj lahko zahteva!</s> Problem pri vp request, ker mora requester (verifier) že v requestu zahtevat točno določene parametre, kar ni problem, če je verifier tudi izdajatelj scheme in ve katere atribute zajema. Verifier, ki ne more pridit so scheme, neve za katere atribute naj prosi. Treba jih bo hardcodad. ALSO: razmisli še glede non_revoked parametra - nas zanima interval kdaj ali samo gledamo, da je trenutno veljavna?
+
+- ko vzpostavim povezavo, agent z invitationom ne doseže drugega agenta - <s>dodal sem trust ping in je v enem izmed primerov delovalo, stestiraj večkrat!!</s> <s>Zdaj sem v invitation dodal auto-accept in deluje basic message!</s> Enkrat dela, drugič ne, zdaj sem odstranil multi_use pri invitation in dela!
+
+- stestiraj še revocation skupaj z vp!

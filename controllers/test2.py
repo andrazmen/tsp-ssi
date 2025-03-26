@@ -16,6 +16,7 @@ from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation)
 from services.connections import get_connections
+from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request)
 from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
@@ -93,6 +94,7 @@ async def handle_conn_webhook():
     event_data = await request.get_json()
     print("Received Webhook Connection Event:", event_data, "\n")
 
+    """
     if event_data["state"] == "invitation" and event_data["rfc23_state"] == "invitation-received":
         print("Invitation received!\n")
 
@@ -114,7 +116,7 @@ async def handle_conn_webhook():
 
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
-
+    """
     print("Connection state:", event_data["state"], event_data["rfc23_state"], "\n")
 
     return jsonify({"status": "success"}), 200
@@ -168,6 +170,13 @@ async def handle_revocation_webhook():
 async def handle_problem_report_webhook():
     event_data = await request.get_json()
     print("Received problem report Webhook:", event_data, "\n")
+
+    return jsonify({"status": "success"}), 200
+
+@app.route('/webhooks/topic/present_proof_v2_0/', methods=['POST'])
+async def handle_proof_webhook():
+    event_data = await request.get_json()
+    print("Received present proof Webhook:", event_data, "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -257,6 +266,25 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error processing invitation: {e}")
 
+        # DIDX
+        elif command.lower() == "accept inv":
+            try:
+                public_did = await get_public_did(client)
+                print("Enter connection ID:")
+                connection_id = input()
+                result = await accept_invitation(client, public_did, connection_id)
+                print(f"Invitation accepted: {result}")
+            except Exception as e:
+                print(f"Error accepting invitation: {e}")
+        elif command.lower() == "accept didx req":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                result = await accept_request(client, connection_id)
+                print(f"DIDx request accepted: {result}")
+            except Exception as e:
+                print(f"Error accepting DIDx request: {e}")
+        
         # CONNECTIONS
         elif command.startswith("connections"):
             try:
@@ -279,6 +307,18 @@ async def cli(stop_event: asyncio.Event):
                    print(c, "\n")
             except Exception as e:
                 print(f"Error getting connections: {e}")
+
+        # TRUST PING
+        elif command.lower() == "ping":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                print("Enter comment:")
+                comment = input()
+                result = await send_ping(client, connection_id, comment)
+                print("Ping sent:", result)
+            except Exception as e:
+                print(f"Error sending ping: {e}")
 
         # BASIC MESSAGE
         elif command.startswith("message"):
@@ -643,7 +683,9 @@ async def cli(stop_event: asyncio.Event):
             try:
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
-                result = await send_presentation(client, pres_ex_id)
+                print("Enter credential ID:")
+                cred_id = input()
+                result = await send_presentation(client, pres_ex_id, cred_id)
                 print(f"Presentation sent: {result}")
             except Exception as e:
                 print(f"Error sending presentation: {e}")
@@ -687,7 +729,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error verifying presentation: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, invitation, connections, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, assign did, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":

@@ -24,8 +24,8 @@ debug-webhooks: true
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
-#auto-respond-messages: true
-auto-respond-credential-proposal: true
+auto-respond-messages: true
+#auto-respond-credential-proposal: true
 #auto-respond-credential-offer: true
 #auto-respond-credential-request: true
 #auto-respond-presentation-proposal: true
@@ -51,10 +51,10 @@ endpoint: http://localhost:8030
 #- "<did_regex>"
 #universal-resolver-bearer-token: "<universal_resolver_token>"
 #REVOCATION
-#tails-server-base-url: http://localhost:6543
+tails-server-base-url: http://localhost:6543
 #tails-server-upload-url: "<tails-server-upload-url>"
-#notify-revocation: true # Specifies that aca-py will notify credential recipients when revoking a credential it issued.
-#monitor-revocation-notification: false # Specifies that aca-py will emit webhooks on notification of revocation received.
+notify-revocation: true # Specifies that aca-py will notify credential recipients when revoking a credential it issued.
+monitor-revocation-notification: true # Specifies that aca-py will emit webhooks on notification of revocation received.
 #anoncreds-legacy-revocation: "reject"
 #LEDGER
 #ledger-pool-name: "<ledger-pool-name>"
@@ -73,7 +73,7 @@ genesis-url: http://193.138.1.21/genesis
 #log-level: "info"
 #PROTOCOL
 auto-ping-connection: true
-auto-accept-intro-invitation-requests: true
+#auto-accept-intro-invitation-requests: true
 #invite-base-url: "<base-url>"
 #monitor-ping: true
 #monitor-forward: true
@@ -99,8 +99,8 @@ inbound-transport:
 outbound-transport: http
 #image-url: "<image-url>"
 #max-message-size: "<message-size>"
-#enable-undelivered-queue: false
-#max-outbound-retry: 4
+enable-undelivered-queue: true
+max-outbound-retry: 4
 #ws-heartbeat-interval: "<interval>"
 #ws-timeout-interval: "<interval>"
 #MEDIATION INVITATION

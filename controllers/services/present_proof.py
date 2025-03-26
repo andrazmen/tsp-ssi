@@ -1,4 +1,4 @@
-from aries_cloudcontroller import (V20PresProblemReportRequest, V20PresSpecByFormatRequest, IndyRequestedCredsRequestedAttr, V20PresProposalRequest, V20PresProposalByFormat, AnoncredsPresentationRequest, AnoncredsPresentationReqAttrSpec, V20PresentationSendRequestToProposal, V20PresSendRequestRequest, V20PresRequestByFormat)
+from aries_cloudcontroller import (V20PresProblemReportRequest, V20PresSpecByFormatRequest, IndyPresSpec, IndyRequestedCredsRequestedAttr, V20PresProposalRequest, V20PresProposalByFormat, AnoncredsPresentationRequest, AnoncredsPresentationReqAttrSpec, AnoncredsPresentationRequestNonRevoked, V20PresentationSendRequestToProposal, V20PresSendRequestRequest, V20PresRequestByFormat)
 
 # Remove an existing presentation exchange record
 async def delete_pres_record(client, pres_ex_id):
@@ -57,30 +57,20 @@ async def report_pres_problem(client, pres_ex_id, description):
     return result
 
 # Sends a proof presentation
-async def send_presentation(client, pres_ex_id):
+async def send_presentation(client, pres_ex_id, cred_id):
     result = await client.present_proof_v2_0.send_presentation(
         pres_ex_id = pres_ex_id,
         body = V20PresSpecByFormatRequest(
             auto_remove = False,
             anoncreds = IndyPresSpec(
-                requested_attributes = [
-                    IndyRequestedCredsRequestedAttr(cred_id="authorizer_id", revealed=True), 
-                    IndyRequestedCredsRequestedAttr(cred_id="authorizer_role", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="authorizee_id", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="authorizee_role", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="power_consumption", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="power_forecast", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="flexibility", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="time_slot", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="control_type", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="description", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="issue_datetime", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="authorization_start", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="authorization_end", revealed=True),
-                    IndyRequestedCredsRequestedAttr(cred_id="credential_type", revealed=True)
-                ],
-                #requested_predicates = IndyRequestedCredsRequestedPred()
-                #self_attested_attributes
+                requested_attributes={
+                    "attr1_referent": IndyRequestedCredsRequestedAttr(
+                        cred_id=cred_id, 
+                        revealed=True
+                    )
+                },
+                requested_predicates = {}, #IndyRequestedCredsRequestedPred()
+                self_attested_attributes = {},
                 trace = True
             ),
             #dif
@@ -101,41 +91,40 @@ async def send_pres_proposal(client, connection_id, schema_name):
             connection_id = connection_id,
             presentation_proposal = V20PresProposalByFormat(
                 anoncreds = AnoncredsPresentationRequest(
-                    #name = name,
+                    name = "Proof request",
                     #non_revoked = AnoncredsPresentationRequestNonRevoked(
                     #    var_from = var_from,
                     #    to = to
                     #)
                     #nonce
-                    requested_attributes = AnoncredsPresentationReqAttrSpec(
-                        #name
-                        #names = [
-                        #    "authorizer_id",
-                        #    "authorizer_role",
-                        #    "authorizee_id",
-                        #    "authorizee_role",
-                        #    "power_consumption",
-                        #    "power_forecast",
-                        #    "flexibility",
-                        #    "time_slot",
-                        #    "control_type",
-                        #    "description",
-                        #    "issue_datetime",
-                        #    "authorization_start",
-                        #    "authorization_end",
-                        #    "credential_type"
-                        #]
-                        #non_revoked = AnoncredsPresentationRequestNonRevoked(
-                        #    var_from = var_from,
-                        #    to = to
-                        #)
-                        restrictions = [{
-                            "schema_name": schema_name
-                        }]
-                    ),
-                    requested_predicates = {}
+                    requested_attributes={
+                        "attr1_referent": AnoncredsPresentationReqAttrSpec(
+                            #name
+                            names=[
+                                "authorizer_id",
+                                "authorizer_role",
+                                "authorizee_id",
+                                "authorizee_role",
+                                "power_consumption",
+                                "power_forecast",
+                                "flexibility",
+                                "time_slot",
+                                "control_type",
+                                "description",
+                                "issue_datetime",
+                                "authorization_start",
+                                "authorization_end",
+                                "credential_type"
+                            ],
+                            non_revoked={"from": 0, "to": 18446744073709551611},
+                            restrictions = [{
+                                "schema_name": schema_name
+                            }]
+                        )
+                    },
+                    requested_predicates = {},
                     #requested_predicates = AnoncredsPresentationReqPredSpec
-                    #version = "1.0"
+                    version = "1.0"
                 )
                 #dif
                 #indy
@@ -169,41 +158,40 @@ async def send_pres_request_free(client, connection_id, schema_name):
             connection_id = connection_id,
             presentation_request = V20PresRequestByFormat(
                 anoncreds = AnoncredsPresentationRequest(
-                    #name = name,
+                    name = "Proof request",
                     #non_revoked = AnoncredsPresentationRequestNonRevoked(
                     #    var_from = var_from,
                     #    to = to
                     #)
                     #nonce
-                    requested_attributes = AnoncredsPresentationReqAttrSpec(
-                        #name
-                        names = [
-                            "authorizer_id",
-                            "authorizer_role",
-                            "authorizee_id",
-                            "authorizee_role",
-                            "power_consumption",
-                            "power_forecast",
-                            "flexibility",
-                            "time_slot",
-                            "control_type",
-                            "description",
-                            "issue_datetime",
-                            "authorization_start",
-                            "authorization_end",
-                            "credential_type"
-                        ],
-                        #non_revoked = AnoncredsPresentationRequestNonRevoked(
-                        #    var_from = var_from,
-                        #    to = to
-                        #)
-                        #restrictions = [{
-                        #    "schema_name": 'AuthCredential'
-                        #}]
-                    ),
-                    requested_predicates = {}
+                    requested_attributes={
+                        "attr1_referent": AnoncredsPresentationReqAttrSpec(
+                            #name
+                            names=[
+                                "authorizer_id",
+                                "authorizer_role",
+                                "authorizee_id",
+                                "authorizee_role",
+                                "power_consumption",
+                                "power_forecast",
+                                "flexibility",
+                                "time_slot",
+                                "control_type",
+                                "description",
+                                "issue_datetime",
+                                "authorization_start",
+                                "authorization_end",
+                                "credential_type"
+                            ],
+                            non_revoked={"from": 0, "to": 18446744073709551611},
+                            restrictions = [{
+                                "schema_name": schema_name
+                            }]
+                        )
+                    },
+                    requested_predicates = {},
                     #requested_predicates = AnoncredsPresentationReqPredSpec
-                    #version = "1.0"
+                    version = "1.0"
                 )
                 #dif
                 #indy

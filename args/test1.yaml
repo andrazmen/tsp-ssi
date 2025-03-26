@@ -24,8 +24,8 @@ debug-webhooks: true
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
-#auto-respond-messages: true
-auto-respond-credential-proposal: true
+auto-respond-messages: true
+#auto-respond-credential-proposal: true
 #auto-respond-credential-offer: true
 #auto-respond-credential-request: true
 #auto-respond-presentation-proposal: true
@@ -73,7 +73,7 @@ log-file: "controllers/logs/test1.log"
 log-level: "debug"
 #PROTOCOL
 auto-ping-connection: true
-auto-accept-intro-invitation-requests: true
+#auto-accept-intro-invitation-requests: true
 #invite-base-url: "<base-url>"
 #monitor-ping: true
 #monitor-forward: true
@@ -99,8 +99,8 @@ inbound-transport:
 outbound-transport: http
 #image-url: "<image-url>"
 #max-message-size: "<message-size>"
-#enable-undelivered-queue: false
-#max-outbound-retry: 4
+enable-undelivered-queue: true
+max-outbound-retry: 4
 #ws-heartbeat-interval: "<interval>"
 #ws-timeout-interval: "<interval>"
 #MEDIATION INVITATION
