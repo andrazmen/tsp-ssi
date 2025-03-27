@@ -1,29 +1,23 @@
+import json
+
 from aries_cloudcontroller import (InvitationCreateRequest, InvitationMessage)
 
-async def create_invitation(client):
+from utils.tools import (extract_oob, decode)
+
+async def create_invitation(client, invitation):
     result = await client.out_of_band.create_invitation(
         #auto_accept = True,
         #create-unique_did,
         #multi_use = True,
-        body=InvitationCreateRequest(
-            accept = ["didcomm/aip1", "didcomm/aip2;env=rfc19"],
-            alias = "test1",
-            goal = "DID exchange", 
-            goal_code = "did-exchange",
-            handshake_protocols = ["https://didcomm.org/didexchange/1.1"],
-            #mediation_id,
-            #meta_data,
-            my_label = "Invitation for DID exchange",
-            protocol_version = "1.1",
-            #use_did,
-            #use_did_method,
-            use_public_did = True
-        )
+        body = InvitationCreateRequest.from_json(invitation)
     )
 
     return result
 
-async def receive_invitation(client, invitation_msg):
+async def receive_invitation(client, url):
+    encoded_invitation = extract_oob(url)
+    decoded_invitation = decode(encoded_invitation)
+    invitation_msg = json.loads(decoded_invitation) 
     inv_msg = InvitationMessage.from_dict(invitation_msg)
     result = await client.out_of_band.receive_invitation(
         #alias,
@@ -31,6 +25,13 @@ async def receive_invitation(client, invitation_msg):
         #mediation_id,
         #use_existing_connection = True,
         body=inv_msg
+    )
+
+    print(result)
+
+async def delete_invitation(client, invi_msg_id):
+    result = await client.out_of_band.remove_invitation_record(
+        invi_msg_id = invi_msg_id
     )
 
     print(result)

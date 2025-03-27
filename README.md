@@ -127,11 +127,24 @@ cd indy-tails-server/docker
 ./manage start 193.138.1.21 --logs
 ```
 
-## Starting controller
+## Starting test controller
 ```bash
 source .venv_cloudcontroller/bin/activate
 
+cd controllers
+
 python3 test1.py
+```
+
+## Starting controller
+This is an example of User entity controller:
+
+```bash
+source .venv_cloudcontroller/bin/activate
+
+cd controllers
+
+python3 controller.py --config config/user_config.py 
 ```
 
 ## TODO
@@ -140,7 +153,7 @@ python3 test1.py
 - controller ne more hkrati zaganjati aca-py in cloudcontrollerja, če sta v različnih .venv (<s>se jih da v isti env?</s> Problem ker je treba downgradad aiohttp na 3.9.4 ker errorji..)
 - aca-py je trenutno verzije 1.1.1, potrebno nadgradit
 
-- DIDEx trenutno narejen avtomatsko - ko nekdo sprejme naš javni invitation, se izvede DID exchange in vzpotavi povezava: treba narest ročni DID exchange
+- <s>DIDEx trenutno narejen avtomatsko - ko nekdo sprejme naš javni invitation, se izvede DID exchange in vzpotavi povezava: treba narest ročni DID exchange</s> Oboje je možno
 - preveri kateri parametri pri cred def in rev bi bili avtomatizirani
 - stestiraj vse revocation funkcije
 - stestiraj /revoke (kaj potrebuješ za revoke - cred_ex_id, ali cred-rev_id in rev_reg_id)
@@ -148,7 +161,7 @@ python3 test1.py
 
 - issue VC: preveri parametre sporočil offer, request, proposal... predvsem attributes in replacement_id (v smislu, da nov VC zamenja starega). Nastavljeno, da je flow automatic, če issuer začne z offer in ga holder sprejme.. v primeru, da se začne s proposal iz holderjeve strani, potem moramo ročno? (issue_atomated avtomatizira celoten flow, uporabno?)
 
-- get records, connections... omogoča filtriranje, zaenkrat requestas vse
+- <s>get records, connections... omogoča filtriranje, zaenkrat requestas vse</s>
 
 - revocation: get_rev_reg_issued_details() ne dela. Mislim, da je bug v cloudcontroller kodi
 
@@ -159,3 +172,5 @@ python3 test1.py
 - ko vzpostavim povezavo, agent z invitationom ne doseže drugega agenta - <s>dodal sem trust ping in je v enem izmed primerov delovalo, stestiraj večkrat!!</s> <s>Zdaj sem v invitation dodal auto-accept in deluje basic message!</s> Enkrat dela, drugič ne, zdaj sem odstranil multi_use pri invitation in dela!
 
 - stestiraj še revocation skupaj z vp!
+
+- ostal sem pri present-proof: send_pres_request_free ima names passan kot parameter - stestiraj! enako naredi še za non_revoked da vzame trenutni timestamp in enako za ostale funkcije!

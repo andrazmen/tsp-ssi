@@ -1,19 +1,16 @@
 import asyncio
 import json
 import sys
+import argparse
+import importlib.util
 from quart import Quart, request, jsonify
 from aries_cloudcontroller import (
-    AcaPyClient,
-    InvitationCreateRequest,
-    InvitationMessage,
-    DIDCreate,
-    DIDXRejectRequest,
-    DIDResult
+    AcaPyClient
 )
 
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
-from services.out_of_band import (create_invitation, receive_invitation)
+from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
 from services.connections import get_connections
 from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request)
@@ -27,9 +24,19 @@ from services.present_proof import (get_pres_record, get_pres_records, delete_pr
 app = Quart(__name__)
 
 # Global controller (aca-py client)
+port = None
+base_url = None
 client: AcaPyClient = None
 #agent: AcaPyAgent = False
+invitation = None
 invitation_url = None
+schema_attr = None
+
+def load_config(config_path):
+    spec = importlib.util.spec_from_file_location("config", config_path)
+    config_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config_module)
+    return config_module
 
 # Start up controller
 @app.before_serving
@@ -37,18 +44,18 @@ async def startup():
     try:    
         global client
         client = AcaPyClient(
-            base_url="http://localhost:8021",
+            base_url=base_url,
             admin_insecure=True
         )
-        print("Client created.")
+        print(f"Client created with base_url: {base_url}")
 
     except Exception as e:
         print(f"Error creating client: {e}")
         sys.exit(1)
 
     # Create public invitation
-    print("Creating public invitation...")
-    asyncio.create_task(process_create_invitation(client))
+    #print("Creating public invitation...")
+    #asyncio.create_task(process_create_invitation(client))
     
 # Serving controller
 @app.while_serving
@@ -179,15 +186,17 @@ async def handle_proof_webhook():
     return jsonify({"status": "success"}), 200
 
 # Webhook functions
+"""
 async def process_create_invitation(client):
     try:
-        result = await create_invitation(client)
+        inv = json.dumps(invitation)
+        result = await create_invitation(client, inv)
         global invitation_url
         invitation_url = result.invitation_url
         print(f"Invitation created: {invitation_url}")
     except Exception as e:
         print(f"Error processing invitation creation: {e}")
-
+"""
 async def process_invitation(event_data):
     try:
         pub_did = await get_public_did(client)
@@ -253,14 +262,32 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error getting public DID: {e}")
 
         # OOB
+        elif command.lower() == "url":
+            try:
+                print(invitation_url)
+            except Exception as e:
+                print(f"Error getting invitation url: {e}") 
+        elif command.lower() == "create inv":
+            try:
+                inv = json.dumps(invitation)
+                result = await create_invitation(client, inv)
+                invitation_url = result.invitation_url
+                print(f"Invitation created: {invitation_url}")
+            except Exception as e:
+                print(f"Error processing invitation creation: {e}")
+        elif command.lower() == "delete inv":
+            try:
+                print("Enter invitation message ID:")
+                inv_id = input()
+                result = await delete_invitation(client, inv_id)
+                print(f"Invitation removed: {result}")
+            except Exception as e:
+                print(f"Error processing invitation creation: {e}")
         elif command.startswith("invitation"):
             print("Enter invitation URL:")
             try:
-                url = input()
-                encoded_invitation = extract_oob(url)
-                decoded_invitation = decode(encoded_invitation)
-                result = json.loads(decoded_invitation)  
-                await receive_invitation(client, result)
+                url = input() 
+                await receive_invitation(client, url)
             except Exception as e:
                 print(f"Error processing invitation: {e}")
 
@@ -364,9 +391,10 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error getting schema: {e}")
         elif command.lower() == "publish schema":
-            print("Enter list of schema attributes:")
+            #print("Enter list of schema attributes:")
             try:
-                attributes = json.loads(input())
+                #attributes = json.loads(input())
+                attributes = schema_attr
                 print("Fetching current public DID...")
                 res = await get_public_did(client)
                 issuer_did = res["did"]
@@ -536,7 +564,7 @@ async def cli(stop_event: asyncio.Event):
                 issuer_id = public_did["did"]
                 print("Enter connection ID:")
                 conn_id = input()
-                print("Enter attributes list:")
+                print("Enter attributes json:")
                 attributes = input()
                 print("Enter credential definition ID:")
                 cred_def_id = input()
@@ -727,8 +755,22 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error verifying presentation: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":
-    asyncio.run(app.run_task(host='0.0.0.0', port=5000, debug=True))
+    #asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))
+
+    parser = argparse.ArgumentParser(description="Run the universal controller with a custom config file.")
+    parser.add_argument("--config", type=str, required=True, help="Path to the Python config file.")
+
+    args = parser.parse_args()
+    
+    config = load_config(args.config)
+    
+    base_url = config.base_url
+    port = config.port
+    schema_attr = config.schema_attr
+    invitation = config.invitation
+    
+    asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))

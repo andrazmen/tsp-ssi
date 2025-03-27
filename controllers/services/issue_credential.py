@@ -1,5 +1,7 @@
 from aries_cloudcontroller import (V20CredIssueRequest, V20CredExFree, V20CredPreview, V20CredAttrSpec, V20CredFilter, V20CredFilterAnoncreds, V20CredIssueProblemReportRequest, V20CredBoundOfferRequest, V20CredOfferRequest, V20CredRequestRequest, V20CredRequestFree, V20CredFilterLDProof, V20CredStoreRequest)
 
+from utils.tools import json_to_offer_attr
+
 import json
 
 # Remove an existing credential exchange record
@@ -157,22 +159,7 @@ async def send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, s
                 #    name,
                 #    value
                 #)
-                attributes = [
-                    V20CredAttrSpec(name="authorizer_id", value="did:sov:WFkQumWz9ok6UXEKP496UA"),
-                    V20CredAttrSpec(name="authorizer_role", value="CEM"),
-                    V20CredAttrSpec(name="authorizee_id", value="did:sov:KzW7Y2H3yVdfJwicwPyreo"),
-                    V20CredAttrSpec(name="authorizee_role", value="aggregator"),
-                    V20CredAttrSpec(name="power_consumption", value="10462"),
-                    V20CredAttrSpec(name="power_forecast", value="12697"),
-                    V20CredAttrSpec(name="flexibility", value="500"),
-                    V20CredAttrSpec(name="time_slot", value="monday"),
-                    V20CredAttrSpec(name="control_type", value="power-profile-based-control"),
-                    V20CredAttrSpec(name="description", value=""),
-                    V20CredAttrSpec(name="issue_datetime", value="2025-03-24T13:00:00Z"),
-                    V20CredAttrSpec(name="authorization_start", value="2025-03-25T12:00:00Z"),
-                    V20CredAttrSpec(name="authorization_end", value="2025-04-25T12:00:00Z"),
-                    V20CredAttrSpec(name="credential_type", value="Authorization Credential")
-                ]
+                attributes = json_to_offer_attr(attributes)
             ),
             filter = V20CredFilter(
                 anoncreds = V20CredFilterAnoncreds(

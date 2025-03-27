@@ -149,7 +149,7 @@ async def send_pres_request(client, pres_ex_id):
     return result
 
 # Sends a free presentation request not bound to any proposal
-async def send_pres_request_free(client, connection_id, schema_name):
+async def send_pres_request_free(client, connection_id, names, schema_name):
     result = await client.present_proof_v2_0.send_request_free(
         body = V20PresSendRequestRequest(
             auto_remove = False,
@@ -167,22 +167,7 @@ async def send_pres_request_free(client, connection_id, schema_name):
                     requested_attributes={
                         "attr1_referent": AnoncredsPresentationReqAttrSpec(
                             #name
-                            names=[
-                                "authorizer_id",
-                                "authorizer_role",
-                                "authorizee_id",
-                                "authorizee_role",
-                                "power_consumption",
-                                "power_forecast",
-                                "flexibility",
-                                "time_slot",
-                                "control_type",
-                                "description",
-                                "issue_datetime",
-                                "authorization_start",
-                                "authorization_end",
-                                "credential_type"
-                            ],
+                            names = names
                             non_revoked={"from": 0, "to": 18446744073709551611},
                             restrictions = [{
                                 "schema_name": schema_name

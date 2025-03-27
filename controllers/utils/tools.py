@@ -1,5 +1,7 @@
 import base64
+import json
 from urllib.parse import urlparse, parse_qs
+from aries_cloudcontroller import V20CredAttrSpec
 
 def decode(enc_str):
     try:
@@ -30,3 +32,15 @@ def extract_oob(url):
 decode(extract_oob("http://localhost:8020?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwNTk2OWIzNC0yNWYxLTRkZDQtYmI1ZS1kYjllMjY1Y2M2ZTYiLCAibGFiZWwiOiAiSW52aXRhdGlvbiBmb3IgRElEIGV4Y2hhbmdlIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4xIl0sICJhY2NlcHQiOiBbImRpZGNvbW0vYWlwMSIsICJkaWRjb21tL2FpcDI7ZW52PXJmYzE5Il0sICJzZXJ2aWNlcyI6IFsiZGlkOnNvdjpXRmtRdW1XejlvazZVWEVLUDQ5NlVBIl19"))
 
 """
+
+def json_to_offer_attr(attr_json):
+    try:
+        attr_dict = json.loads(attr_json)
+        
+        attr_list = [
+            V20CredAttrSpec(name=key, value=value) 
+            for key, value in attr_dict.items()
+        ]
+        return attr_list
+    except Exception as e:
+        print(f"Error converting json to list: {e}")
