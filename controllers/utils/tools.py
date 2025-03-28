@@ -1,6 +1,8 @@
 import base64
 import json
+import random
 from urllib.parse import urlparse, parse_qs
+
 from aries_cloudcontroller import V20CredAttrSpec
 
 def decode(enc_str):
@@ -44,3 +46,9 @@ def json_to_offer_attr(attr_json):
         return attr_list
     except Exception as e:
         print(f"Error converting json to list: {e}")
+
+def random_nonce():
+    first_digit = str(random.randint(1, 9))  # First digit must be 1-9
+    other_digits = ''.join(str(random.randint(0, 9)) for _ in range(10))
+
+    return first_digit + other_digits

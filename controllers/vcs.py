@@ -8,6 +8,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
+from vcs.cache import (cache_proof, get_proof, validate_proof)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
@@ -15,10 +16,6 @@ from services.connections import get_connections
 from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request)
 from services.basic_message import send_message
-from services.schemas import (get_schemas, get_schema, publish_schema)
-from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
-from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
-from services.issue_credential import (send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record, store_credential)
 from services.present_proof import (get_pres_record, get_pres_records, delete_pres_record, get_matching_credentials, send_presentation, send_pres_proposal, send_pres_request, send_pres_request_free, verify_presentation, report_pres_problem)
 
 app = Quart(__name__)
@@ -30,9 +27,6 @@ client: AcaPyClient = None
 #agent: AcaPyAgent = False
 invitation = None
 invitation_url = None
-schema_name_conf = None
-schema_version_conf = None
-schema_attr_conf = None
 
 def load_config(config_path):
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -144,35 +138,6 @@ async def handle_basicmsg_webhook():
 
     return jsonify({"status": "success"}), 200
 
-@app.route('/webhooks/topic/issue_credential_v2_0/', methods=['POST'])
-async def handle_credential_webhook():
-    event_data = await request.get_json()
-    print("Received VC Webhook:", event_data, "\n")
-
-    if event_data["state"] == "offer-received":
-        cred_ex_id = event_data['cred_ex_id']
-        offer = event_data['cred_offer']
-        print("Received VC offer:", offer['credential_preview'], "with cred_ex_id:", cred_ex_id, "\n")
-    elif event_data["state"] == "credential-received":
-        cred_ex_id = event_data['cred_ex_id']
-        print("Received VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
-
-    return jsonify({"status": "success"}), 200
-
-@app.route('/webhooks/topic/issue_credential_v2_0_anoncreds/', methods=['POST'])
-async def handle_anonCreds_credential_webhook():
-    event_data = await request.get_json()
-    print("Received AnonCreds VC Webhook:", event_data, "\n")
-
-    return jsonify({"status": "success"}), 200
-
-@app.route('/webhooks/topic/issuer_cred_rev/', methods=['POST'])
-async def handle_revocation_webhook():
-    event_data = await request.get_json()
-    print("Received revocation Webhook:", event_data, "\n")
-
-    return jsonify({"status": "success"}), 200
-
 @app.route('/webhooks/topic/problem_report/', methods=['POST'])
 async def handle_problem_report_webhook():
     event_data = await request.get_json()
@@ -185,12 +150,14 @@ async def handle_proof_webhook():
     event_data = await request.get_json()
     print("Received present proof Webhook:", event_data, "\n")
 
-    return jsonify({"status": "success"}), 200
+    if event_data["state"] == "done":
+        if event_data["role"] == "verifier":
+            if event_data["verified"] == "true":
+                proof_id = event_data["pres_ex_id"]
+                conn_id = event_data["connection_id"]
+                data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]
 
-@app.route('/webhooks/topic/revocation-notification/', methods=['POST'])
-async def handle_rev_notif_webhook():
-    event_data = await request.get_json()
-    print("Received revocation notification Webhook:", event_data, "\n")
+                cache_proof(proof_id, conn_id, data)
 
     return jsonify({"status": "success"}), 200
 
@@ -365,304 +332,7 @@ async def cli(stop_event: asyncio.Event):
                 print("Message sent:", result)
             except Exception as e:
                 print(f"Error sending message: {e}")
-
-        # SCHEMA    
-        elif command.lower() == "schemas":
-            try:
-                print("Enter schema issuer DID:")
-                did = input()
-                if did:
-                    schema_issuer_did = did
-                else:
-                    schema_issuer_did = None
-                print("Enter schema name:")
-                name = input()
-                if name:
-                    schema_name = name
-                else:
-                    schema_name = None
-                print("Enter schema version:")
-                version = input()
-                if version:
-                    schema_version = version
-                else:
-                    schema_version = None
-                result = await get_schemas(client, schema_issuer_did, schema_name, schema_version)
-                print("\n", result)
-            except Exception as e:
-                print(f"Error getting schemas: {e}")
-        elif command.lower() == "schema":
-            print("Enter schema ID:")
-            try:
-                schema_id = input()
-                result = await get_schema(client, schema_id)
-                print(f"Schema: {result.var_schema}")
-            except Exception as e:
-                print(f"Error getting schema: {e}")
-        elif command.lower() == "publish schema":
-            try:
-                print("Fetching current public DID...")
-                res = await get_public_did(client)
-                issuer_did = res["did"]
-                print("Enter schema name (if None, default config schema name!):")
-                name = input()
-                if name:
-                    schema_name = name
-                else:
-                    schema_name = schema_name_conf
-                print("Enter schema version (if None, default config schema version!):")
-                version = input()
-                if version:
-                    schema_version = version
-                else:
-                    schema_version = schema_version_conf
-                print("Enter list of schema attributes (if None, default config schema attributes!):")
-                attr_json = input()
-                if attr_json:
-                    attributes = json.loads(attr_json)
-                else:
-                    attributes = schema_attr_conf
-                result = await publish_schema(client, issuer_did, attributes, schema_name, schema_version)
-                print(f"Schema created: {result}")
-            except Exception as e:
-                print(f"Error publishing schema: {e}")   
-
-        # CREDENTIAL DEFINITION
-        elif command.lower() == "cred defs":
-            try:
-                print("Enter issuer DID:")
-                did = input()
-                if did:
-                    issuer_id = did
-                else:
-                    issuer_id = None
-                print("Enter schema ID:")
-                id = input()
-                if id:
-                    schema_id = id
-                else:
-                    schema_id = None
-                print("Enter schema name:")
-                name = input()
-                if name:
-                    schema_name = name
-                else:
-                    schema_name = None
-                print("Enter schema version:")
-                version = input()
-                if version:
-                    schema_version = version
-                else:
-                    schema_version = None
-                result = await get_cred_defs(client, issuer_id, schema_id, schema_name, schema_version)
-                print(f"Credential definitions: {result}")
-            except Exception as e:
-                print(f"Error getting credential definitions: {e}")
-        elif command.lower() == "cred def":
-            print("Enter credential definition ID:")
-            try:
-                cred_def_id = input()
-                result = await get_cred_def(client, cred_def_id)
-                print(f"Credential definition: {result}")
-            except Exception as e:
-                print(f"Error getting credential definition: {e}")
-        elif command.lower() == "create cred def":
-            try:
-                print("Fetching current public DID...")
-                res = await get_public_did(client)
-                issuer_id = res["did"]
-                print("Enter schema ID:")
-                schema_id = input()
-                result = await create_cred_def(client, issuer_id, schema_id)
-                print(f"Credential definition created: {result}")
-            except Exception as e:
-                print(f"Error creating credential definition: {e}")
         
-        # REVOCATION
-        elif command.lower() == "active rev reg":
-            try:
-                print("Enter credential definition ID:")
-                cred_def_id = input()
-                result = await get_active_rev_reg(client, cred_def_id)
-                print(f"Active revocation registry: {result}")
-            except Exception as e:
-                print(f"Error getting active revocation registry: {e}")
-        elif command.lower() == "rev reg issued":
-            try:
-                print("Enter revocation registry ID:")
-                rev_reg_id = input()
-                result = await get_rev_reg_issued(client, rev_reg_id)
-                print(f"Number of issued credentials : {result}")
-            except Exception as e:
-                print(f"Error getting number of issued credentials: {e}")
-        elif command.lower() == "rev reg issued details":
-            try:
-                print("Enter revocation registry ID:")
-                rev_reg_id = input()
-                result = await get_rev_reg_issued_details(client, rev_reg_id)
-                print(f"Details of issued credentials : {result}")
-            except Exception as e:
-                print(f"Error getting details of issued credentials: {e}")
-        elif command.lower() == "rev regs":
-            try:
-                print("Enter credential definition ID:")
-                cred_def_id = input()
-                result = await get_rev_regs(client, cred_def_id)
-                print(f"Revocation registries : {result}")
-            except Exception as e:
-                print(f"Error getting revocation registries: {e}")
-        elif command.lower() == "rev reg":
-            try:
-                print("Enter revocation registry ID:")
-                rev_reg_id = input()
-                result = await get_rev_reg(client, rev_reg_id)
-                print(f"Revocation registry : {result}")
-            except Exception as e:
-                print(f"Error getting revocation registry: {e}")
-        elif command.lower() == "revoke":
-            try:
-                print("Enter connection ID:")
-                conn_id = input()
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                print("Enter thread ID:")
-                thread_id = input()
-                print("Enter comment:")
-                comment = input()
-                result = await revoke(client, comment, conn_id, cred_ex_id, thread_id)
-                print(f"Credential revoked: {result}")
-            except Exception as e:
-                print(f"Error revoking credential: {e}")
-
-        # ISSUE VC
-        elif command.lower() == "vc records":
-            try:
-                print("Enter connection ID:")
-                conn_id = input()
-                if conn_id:
-                    connection_id = conn_id
-                else:
-                    connection_id = None
-                print("Enter credential exchange state (proposal-sent/proposal-received/offer-sent/offer-received/request-sent/request-received/credential-issued/credential-received/done/credential-revoked/abandoned):")
-                cred_ex_state = input()
-                if cred_ex_state:
-                    state = cred_ex_state
-                else:
-                    state = None
-                print("Enter your role in credential exchange record (issuer/holder):")
-                cred_ex_role = input()
-                if cred_ex_role:
-                    role = cred_ex_role
-                else:
-                    role = None
-                result = await get_records(client, connection_id, role, state)
-                records_dict = result.to_dict()
-                records = records_dict["results"]
-                for r in records:
-                   print(r, "\n")
-            except Exception as e:
-                print(f"Error getting credential exchange records: {e}")
-        elif command.lower() == "vc record":
-            try:
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                result = await get_record(client, cred_ex_id)
-                print(f"Credential exchange record: {result}")
-            except Exception as e:
-                print(f"Error gettting credential exchange record: {e}")
-        elif command.lower() == "delete vc record":
-            try:
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                result = await delete_record(client, cred_ex_id)
-                print(f"Credential exchange record deleted: {result}")
-            except Exception as e:
-                print(f"Error deleting credential exchange record: {e}")
-        elif command.lower() == "offer":
-            try:
-                public_did = await get_public_did(client)
-                issuer_id = public_did["did"]
-                print("Enter connection ID:")
-                conn_id = input()
-                print("Enter attributes json:")
-                attributes = input()
-                print("Enter credential definition ID:")
-                cred_def_id = input()
-                print("Enter schema ID:")
-                schema_id = input()
-                result = await send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id)
-            except Exception as e:
-                print(f"Error sending credential offer: {e}")
-        elif command.lower() == "vc request":
-            try:
-                public_did = await get_public_did(client)
-                holder_did = public_did["did"]
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                result = await send_request(client, cred_ex_id, holder_did)
-                print(f"Credential request sent: {result}")
-            except Exception as e:
-                print(f"Error sending credential request: {e}")
-        elif command.lower() == "issue vc":
-            try:
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                result = await issue_credential(client, cred_ex_id)
-                print(f"Credential issued: {result}")
-            except Exception as e:
-                print(f"Error issuing credential: {e}")
-        elif command.lower() == "store":
-            try:
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                result = await store_credential(client, cred_ex_id)
-                print(f"Credential stored: {result}")
-            except Exception as e:
-                print(f"Error storing credential: {e}")
-        elif command.lower() == "vc problem":
-            try:
-                print("Enter credential exchange ID:")
-                cred_ex_id = input()
-                print("Enter report description:")
-                description = input()
-                result = await report_problem(client, cred_ex_id, description)
-                print(f"Problem report sent: {result}")
-            except Exception as e:
-                print(f"Error sending problem report: {e}")
-        
-        ## VC
-        elif command.lower() == "vcs":
-            try:
-                result = await get_credentials(client)
-                print(f"Stored credentials:", "\n")
-                for vc in result:
-                    print(vc, "\n")
-            except Exception as e:
-                print(f"Error getting stored credentials: {e}")
-        elif command.lower() == "vc":
-            try:
-                print("Enter credential ID:")
-                cred_id = input()
-                result = await get_credential(client, cred_id)
-                print(f"Stored credential: {result}")
-            except Exception as e:
-                print(f"Error getting stored credential: {e}")
-        elif command.lower() == "rev status":
-            try:
-                print("Enter credential ID:")
-                cred_id = input()
-                result = await get_revocation_status(client, cred_id)
-                print(f"Credential revocation status: {result}")
-            except Exception as e:
-                print(f"Error getting credential revocation status: {e}")
-        elif command.lower() == "delete vc":
-            try:
-                print("Enter credential ID:")
-                cred_id = input()
-                result = await delete_credential(client, cred_id)
-                print(f"Stored credential deleted: {result}")
-            except Exception as e:
-                print(f"Error deleting stored credential: {e}")
         ## PRESENT VP
         elif command.lower() == "vp record":
             try:

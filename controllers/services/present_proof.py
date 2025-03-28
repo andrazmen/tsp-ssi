@@ -1,5 +1,9 @@
 from aries_cloudcontroller import (V20PresProblemReportRequest, V20PresSpecByFormatRequest, IndyPresSpec, IndyRequestedCredsRequestedAttr, V20PresProposalRequest, V20PresProposalByFormat, AnoncredsPresentationRequest, AnoncredsPresentationReqAttrSpec, AnoncredsPresentationRequestNonRevoked, V20PresentationSendRequestToProposal, V20PresSendRequestRequest, V20PresRequestByFormat)
 
+import time
+
+from utils.tools import random_nonce
+
 # Remove an existing presentation exchange record
 async def delete_pres_record(client, pres_ex_id):
     result = await client.present_proof_v2_0.delete_record(
@@ -82,48 +86,33 @@ async def send_presentation(client, pres_ex_id, cred_id):
     return result
 
 # Sends a presentation proposal
-async def send_pres_proposal(client, connection_id, schema_name):
+async def send_pres_proposal(client, connection_id, names, schema_name):
+    timestamp = int(time.time())
     result = await client.present_proof_v2_0.send_proposal(
         body = V20PresProposalRequest(
-            #auto_present=True,
+            auto_present=True,
             auto_remove = False,
             #comment = comment,
             connection_id = connection_id,
             presentation_proposal = V20PresProposalByFormat(
                 anoncreds = AnoncredsPresentationRequest(
                     name = "Proof request",
-                    #non_revoked = AnoncredsPresentationRequestNonRevoked(
-                    #    var_from = var_from,
-                    #    to = to
-                    #)
-                    #nonce
+                    non_revoked = AnoncredsPresentationRequestNonRevoked(
+                        var_from = 0,
+                        to = timestamp
+                    ),
+                    nonce = random_nonce(),
                     requested_attributes={
                         "attr1_referent": AnoncredsPresentationReqAttrSpec(
                             #name
-                            names=[
-                                "authorizer_id",
-                                "authorizer_role",
-                                "authorizee_id",
-                                "authorizee_role",
-                                "power_consumption",
-                                "power_forecast",
-                                "flexibility",
-                                "time_slot",
-                                "control_type",
-                                "description",
-                                "issue_datetime",
-                                "authorization_start",
-                                "authorization_end",
-                                "credential_type"
-                            ],
-                            non_revoked={"from": 0, "to": 18446744073709551611},
+                            names=names,
+                            non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
                                 "schema_name": schema_name
                             }]
                         )
                     },
-                    requested_predicates = {},
-                    #requested_predicates = AnoncredsPresentationReqPredSpec
+                    requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
                 )
                 #dif
@@ -150,6 +139,7 @@ async def send_pres_request(client, pres_ex_id):
 
 # Sends a free presentation request not bound to any proposal
 async def send_pres_request_free(client, connection_id, names, schema_name):
+    timestamp = int(time.time())
     result = await client.present_proof_v2_0.send_request_free(
         body = V20PresSendRequestRequest(
             auto_remove = False,
@@ -159,23 +149,22 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
             presentation_request = V20PresRequestByFormat(
                 anoncreds = AnoncredsPresentationRequest(
                     name = "Proof request",
-                    #non_revoked = AnoncredsPresentationRequestNonRevoked(
-                    #    var_from = var_from,
-                    #    to = to
-                    #)
-                    #nonce
+                    non_revoked = AnoncredsPresentationRequestNonRevoked(
+                        var_from = 0,
+                        to = timestamp
+                    ),
+                    nonce = random_nonce(),
                     requested_attributes={
                         "attr1_referent": AnoncredsPresentationReqAttrSpec(
                             #name
-                            names = names
-                            non_revoked={"from": 0, "to": 18446744073709551611},
+                            names = names,
+                            non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
                                 "schema_name": schema_name
                             }]
                         )
                     },
-                    requested_predicates = {},
-                    #requested_predicates = AnoncredsPresentationReqPredSpec
+                    requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
                 )
                 #dif
