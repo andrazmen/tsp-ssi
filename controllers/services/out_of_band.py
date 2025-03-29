@@ -16,6 +16,7 @@ async def create_invitation(client, invitation):
 
 async def receive_invitation(client, url):
     encoded_invitation = extract_oob(url)
+    print("t:", type(encoded_invitation))
     decoded_invitation = decode(encoded_invitation)
     invitation_msg = json.loads(decoded_invitation) 
     inv_msg = InvitationMessage.from_dict(invitation_msg)

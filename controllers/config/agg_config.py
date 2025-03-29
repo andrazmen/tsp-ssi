@@ -4,4 +4,3 @@ invitation = {"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "ag
 schema_name = ""
 schema_version = ""
 schema_attr = []
-invitation = {}

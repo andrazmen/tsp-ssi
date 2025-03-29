@@ -14,3 +14,10 @@ async def get_connections(client, state, their_did):
     )
 
     return result
+
+async def get_connection(client, conn_id):
+    result = await client.connection.get_connection(
+        conn_id = conn_id
+    )
+
+    return result

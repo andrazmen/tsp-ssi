@@ -1,0 +1,153 @@
+label: vcs
+#ADMIN
+admin: [0.0.0.0, 8061]
+#admin-api-key: <api-key>
+admin-insecure-mode: true #without API-key
+#no-receive-invites: false
+#help-link: <help-url>
+webhook-url: http://localhost:5200/webhooks
+#admin-client-max-request-size: ADMIN_CLIENT_MAX_REQUEST_SIZE
+#DEBUGGER
+#debug: false
+#DEBUG
+#debug-seed: "<debug-did-seed>"
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
+debug-webhooks: true
+#invite: true #OOB invitation (URL)
+#connections-invite: true #connection protocol invitation
+#invite-label: test1-invitation
+#invite-multi-use: true
+#invite-public: true #all created invitations will use public DID 
+#invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test1", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
+#test-suite-endpoint: "<endpoint>"
+#auto-accept-invites: true
+#auto-accept-requests: true
+auto-respond-messages: true
+#auto-respond-credential-proposal: true
+#auto-respond-credential-offer: true
+#auto-respond-credential-request: true
+#auto-respond-presentation-proposal: true
+#auto-respond-presentation-request: true
+#auto-store-credential: true
+#auto-verify-presentation: true
+#DISCOVER FEATURES
+#auto-disclose-features: false
+#disclose-features-list: "<yaml-file-path>"
+#GENERAL
+#arg-file: "args/test1.yaml"
+#plugin:
+#- "<module>"
+#block-plugin:
+#- "<module>"
+#plugin-config: "<plugin-config>"
+#plugin-config-value:
+#- "KEY=VALUE"
+endpoint: http://localhost:8060
+#profile-endpoint: "<profile_endpoint>"
+#universal-resolver: false
+#universal-resolver-regex:
+#- "<did_regex>"
+#universal-resolver-bearer-token: "<universal_resolver_token>"
+#REVOCATION
+tails-server-base-url: http://localhost:6543
+#tails-server-upload-url: "<tails-server-upload-url>"
+notify-revocation: true # Specifies that aca-py will notify credential recipients when revoking a credential it issued.
+monitor-revocation-notification: false # Specifies that aca-py will emit webhooks on notification of revocation received.
+#anoncreds-legacy-revocation: "reject"
+#LEDGER
+#ledger-pool-name: "<ledger-pool-name>"
+#genesis-transactions: "<genesis-transactions>"
+#genesis-file: "<genesis-file>"
+genesis-url: http://193.138.1.21/genesis
+#no-ledger: true
+#read-only-ledger: false
+#ledger-keepalive: 5
+#ledger-socks-proxy: "<host:port>"
+#genesis-transactions-list: "<genesis-transactions-list>"
+#accept-taa: "<acceptance-mechanism>"
+#LOGGING
+#log-config: "<path-to-config>"
+#log-file: "controllers/logs/test1.log"
+#log-level: "debug"
+#PROTOCOL
+auto-ping-connection: true
+#auto-accept-intro-invitation-requests: true
+#invite-base-url: "<base-url>"
+#monitor-ping: true
+#monitor-forward: true
+public-invites: true #Send invitations out using the public DID for the agent, and receive connection requests solicited by invitations which use the public DID
+requests-through-public-did: true #Allow agent to receive unsolicited connection requests, using the public DID for the agent.
+timing: true
+#timing-log: "<log-path>"
+#trace: false
+#trace-target: "log"
+#trace-tag: "<trace-tag>"
+#trace-label: "<trace-label>"
+preserve-exchange-records: true
+emit-new-didcomm-prefix: true
+emit-new-didcomm-mime-type: true
+#exch-use-unencrypted-tags: false
+#experimental-didcomm-v2: true
+#START-UP
+auto-provision: true #If the requested profile does not exist, initialize it with the given parameters
+#TRANSPORT
+#no-transport: false
+inbound-transport:
+- [http, 0.0.0.0, 8060]
+outbound-transport: http
+#image-url: "<image-url>"
+#max-message-size: "<message-size>"
+enable-undelivered-queue: true
+max-outbound-retry: 4
+#ws-heartbeat-interval: "<interval>"
+#ws-timeout-interval: "<interval>"
+#MEDIATION INVITATION
+#mediator-invitation: "<invite URL to mediator>"
+#mediator-connections-invite: false
+#MEDIATION
+#open-mediation: false
+#default-mediator-id: "<mediation id>"
+#clear-default-mediator: false
+#WALLET
+seed: vcs00000000000000000000000000000
+#wallet-local-did: true #If this parameter is set, provisions the wallet with a local DID from the '--seed' parameter, instead of a public DID to use with a #Hyperledger Indy ledger.
+#wallet-allow-insecure-seed: false #If this parameter is set, allows to use a custom seed to create a local DID
+wallet-key: secret #Specifies the master key value to use to open the wallet
+#wallet-rekey: "<wallet-rekey>" #Specifies a new master key value to which to rotate and to open the wallet next time
+wallet-name: vcs
+wallet-type: askar-anoncreds
+wallet-storage-type: default #sqlite
+#wallet-test: false
+#wallet-storage-config: "<storage-config>" #if using postgres_storage
+#wallet-key-derivation-method: "<key-derivation-method>"
+#wallet-rekey-derivation-method: "<rekey-derivation-method>"
+#wallet-storage-creds: "<storage-creds>" #if using postgres_storage
+#replace-public-did: false If this parameter is set and an agent already has a public DID, and the '--seed' parameter specifies a new DID, the agent will use the new #DID in place of the existing DID.
+#recreate-wallet: false
+#MULTITENANT (TBD!)
+#multitenant: false
+#jwt-secret: "<jwt-secret>"
+#multitenant-admin: false
+#multitenancy-config: {}
+#base-wallet-routes: []
+#ENDORSMENT (TBD!)
+#endorser-protocol-role: "none" #Specify the role ('author' or 'endorser') which this agent will participate. Default without endorsment
+#endorser-invitation: "<endorser-invitation>"
+#endorser-public-did: "<endorser-public-did>"
+#endorser-endorse-with-did: "<endorser-endorse-with-did>"
+#endorser-alias: "<endorser-alias>"
+#auto-request-endorsement: false
+#auto-endorse-transactions: false
+#auto-write-transactions: false
+#auto-create-revocation-transactions: false
+#auto-promote-author-did: false
+#UPGRADE
+#upgrade-config-path: "./acapy_agent/commands/default_version_upgrade_config.yml"
+#from-version: "<from-version>"
+#force-upgrade: false
+#named-tag: "<named-tag>"
+#upgrade-all-subwallets: false
+#upgrade-subwallet: "<upgrade-subwallet>"
+#upgrade-page-size: "<upgrade-page-size>"

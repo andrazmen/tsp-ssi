@@ -17,7 +17,7 @@ from services.did_exchange import (accept_invitation, accept_request)
 from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
 from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
-from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke)
+from services.revocation import (get_active_rev_reg, get_rev_reg_issued, get_rev_reg_issued_details, get_rev_regs, get_rev_reg, revoke, check_revocation_status)
 from services.issue_credential import (send_offer_free, send_request, issue_credential, report_problem, get_record, get_records, delete_record, store_credential)
 from services.present_proof import (get_pres_record, get_pres_records, delete_pres_record, get_matching_credentials, send_presentation, send_pres_proposal, send_pres_request, send_pres_request_free, verify_presentation, report_pres_problem)
 
@@ -28,7 +28,7 @@ port = None
 base_url = None
 client: AcaPyClient = None
 #agent: AcaPyAgent = False
-invitation = None
+invitation_conf = None
 invitation_url = None
 schema_name_conf = None
 schema_version_conf = None
@@ -185,6 +185,17 @@ async def handle_proof_webhook():
     event_data = await request.get_json()
     print("Received present proof Webhook:", event_data, "\n")
 
+    if event_data["state"] == "proposal-received":
+        pres_ex_id = event_data['pres_ex_id']
+        proposal = event_data['by_format']
+        print("Received vp proposal:", proposal, "with pres_ex_id:", pres_ex_id, "\n")
+    elif event_data["state"] == "request-received":
+        pres_ex_id = event_data['pres_ex_id']
+        print("Received vp request:", event_data, "with pres_ex_id:", pres_ex_id, "\n")
+    elif event_data["state"] == "presentation-received":
+        pres_ex_id = event_data['pres_ex_id']
+        print("Received vp:", event_data, "with pres_ex_id:", pres_ex_id, "\n")
+        
     return jsonify({"status": "success"}), 200
 
 @app.route('/webhooks/topic/revocation-notification/', methods=['POST'])
@@ -278,7 +289,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error getting invitation url: {e}") 
         elif command.lower() == "create inv":
             try:
-                inv = json.dumps(invitation)
+                inv = json.dumps(invitation_conf)
                 result = await create_invitation(client, inv)
                 invitation_url = result.invitation_url
                 print(f"Invitation created: {invitation_url}")
@@ -778,6 +789,15 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 
+        elif command.lower() == "rev":
+            try:
+                print("Enter rev reg ID:")
+                rev_reg_id = input()
+                result = await check_revocation_status(client, rev_reg_id)
+                print(f"Rev reg: {result}")
+            except Exception as e:
+                print(f"Error: {e}")
+
         else:
             print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
@@ -797,6 +817,6 @@ if __name__ == "__main__":
     schema_attr_conf = config.schema_attr
     schema_name_conf = config.schema_name
     schema_version_conf = config.schema_version
-    invitation = config.invitation
+    invitation_conf = config.invitation
     
     asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))

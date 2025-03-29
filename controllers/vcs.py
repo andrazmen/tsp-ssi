@@ -8,11 +8,11 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from vcs.cache import (cache_proof, get_proof, validate_proof)
+from vcs.cache import (cache_proof, get_proof, get_proofs)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
-from services.connections import get_connections
+from services.connections import (get_connections, get_connection)
 from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request)
 from services.basic_message import send_message
@@ -150,15 +150,16 @@ async def handle_proof_webhook():
     event_data = await request.get_json()
     print("Received present proof Webhook:", event_data, "\n")
 
-    if event_data["state"] == "done":
+    if event_data["state"] == "proposal-received":
+        pres_ex_id = event_data['pres_ex_id']
+        proposal = event_data['by_format']
+        print("Received vp proposal:", proposal, "with pres_ex_id:", pres_ex_id, "\n")
+
+    elif event_data["state"] == "done":
         if event_data["role"] == "verifier":
             if event_data["verified"] == "true":
-                proof_id = event_data["pres_ex_id"]
-                conn_id = event_data["connection_id"]
-                data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]
-
-                cache_proof(proof_id, conn_id, data)
-
+                print("Caching proof...")
+                asyncio.create_task(store_proof(event_data))
     return jsonify({"status": "success"}), 200
 
 # Webhook functions
@@ -186,6 +187,20 @@ async def process_request(event_data):
 
     except Exception as e:
         print(f"Error processing request: {e}")
+
+async def store_proof(event_data):
+    try:
+        conn_id = event_data["connection_id"]
+        result = await get_connection(client, conn_id)
+
+        did = result.to_dict()['their_did']
+        proof_id = event_data["pres_ex_id"]
+        data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]
+
+        cache_proof(proof_id, did, conn_id, data)
+
+    except Exception as e:
+        print(f"Error storing proof: {e}")      
 
 # CLI
 async def cli(stop_event: asyncio.Event):
@@ -308,6 +323,14 @@ async def cli(stop_event: asyncio.Event):
                    print(c, "\n")
             except Exception as e:
                 print(f"Error getting connections: {e}")
+        elif command.lower() == "connection":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                result = await get_connection(client, conn_id)
+                print("Connection:", result)
+            except Exception as e:
+                print(f"Error getting connection: {e}")            
         
         # TRUST PING
         elif command.lower() == "ping":
@@ -447,6 +470,14 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Presentation verified: {result}")
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
+
+        ## CACHE
+        elif command.lower() == "proofs":
+            try:
+                result = get_proofs()
+                print("Cached proofs:", result)
+            except Exception as e:
+                print(f"Error fetching proofs from cache: {e}")            
 
         else:
             print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
