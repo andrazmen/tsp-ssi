@@ -407,7 +407,7 @@ async def cli(stop_event: asyncio.Event):
             try:
                 schema_id = input()
                 result = await get_schema(client, schema_id)
-                print(f"Schema: {result.var_schema}")
+                print(f"Schema: {result}")
             except Exception as e:
                 print(f"Error getting schema: {e}")
         elif command.lower() == "publish schema":
@@ -723,7 +723,9 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
                 result = await get_matching_credentials(client, pres_ex_id)
-                print(f"Matching credentials: {result}")
+                print(f"Matching credentials: {result}", "\n")
+                print("Credential ID:", result[0].cred_info.referent)
+                print("Credential revocation ID:", result[0].cred_info.cred_rev_id)
             except Exception as e:
                 print(f"Error getting matching credentials: {e}")
         elif command.lower() == "vp problem":
@@ -742,7 +744,9 @@ async def cli(stop_event: asyncio.Event):
                 pres_ex_id = input()
                 print("Enter credential ID:")
                 cred_id = input()
-                result = await send_presentation(client, pres_ex_id, cred_id)
+                print("Credential revocation ID:")
+                cred_rev_id = input()
+                result = await send_presentation(client, pres_ex_id, cred_id, cred_rev_id)
                 print(f"Presentation sent: {result}")
             except Exception as e:
                 print(f"Error sending presentation: {e}")

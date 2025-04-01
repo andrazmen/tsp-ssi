@@ -1,11 +1,11 @@
-label: test2
+label: user
 #ADMIN
-admin: [0.0.0.0, 8031]
+admin: [0.0.0.0, 8021]
 #admin-api-key: <api-key>
 admin-insecure-mode: true #without API-key
 #no-receive-invites: false
 #help-link: <help-url>
-webhook-url: http://localhost:5050/webhooks
+webhook-url: http://localhost:5000/webhooks
 #admin-client-max-request-size: ADMIN_CLIENT_MAX_REQUEST_SIZE
 #DEBUGGER
 #debug: false
@@ -17,10 +17,10 @@ debug-presentations: true
 debug-webhooks: true
 #invite: true #OOB invitation (URL)
 #connections-invite: true #connection protocol invitation
-#invite-label: test2-invitation
+#invite-label: test1-invitation
 #invite-multi-use: true
 #invite-public: true #all created invitations will use public DID 
-#invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
+#invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test1", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
@@ -36,7 +36,7 @@ auto-respond-messages: true
 #auto-disclose-features: false
 #disclose-features-list: "<yaml-file-path>"
 #GENERAL
-#arg-file: "<arg-file>"
+#arg-file: "args/test1.yaml"
 #plugin:
 #- "<module>"
 #block-plugin:
@@ -44,7 +44,7 @@ auto-respond-messages: true
 #plugin-config: "<plugin-config>"
 #plugin-config-value:
 #- "KEY=VALUE"
-endpoint: http://localhost:8030
+endpoint: http://localhost:8020
 #profile-endpoint: "<profile_endpoint>"
 #universal-resolver: false
 #universal-resolver-regex:
@@ -54,7 +54,7 @@ endpoint: http://localhost:8030
 tails-server-base-url: http://localhost:6543
 #tails-server-upload-url: "<tails-server-upload-url>"
 notify-revocation: true # Specifies that aca-py will notify credential recipients when revoking a credential it issued.
-monitor-revocation-notification: true # Specifies that aca-py will emit webhooks on notification of revocation received.
+monitor-revocation-notification: false # Specifies that aca-py will emit webhooks on notification of revocation received.
 #anoncreds-legacy-revocation: "reject"
 #LEDGER
 #ledger-pool-name: "<ledger-pool-name>"
@@ -69,8 +69,8 @@ genesis-url: http://193.138.1.21/genesis
 #accept-taa: "<acceptance-mechanism>"
 #LOGGING
 #log-config: "<path-to-config>"
-#log-file: "<log-file>"
-#log-level: "info"
+log-file: "controllers/logs/test1.log"
+log-level: "debug"
 #PROTOCOL
 auto-ping-connection: true
 #auto-accept-intro-invitation-requests: true
@@ -95,7 +95,7 @@ auto-provision: true #If the requested profile does not exist, initialize it wit
 #TRANSPORT
 #no-transport: false
 inbound-transport:
-- [http, 0.0.0.0, 8030]
+- [http, 0.0.0.0, 8020]
 outbound-transport: http
 #image-url: "<image-url>"
 #max-message-size: "<message-size>"
@@ -111,12 +111,12 @@ max-outbound-retry: 4
 #default-mediator-id: "<mediation id>"
 #clear-default-mediator: false
 #WALLET
-seed: test2000000000000000000000000000
+seed: user0000000000000000000000000000
 #wallet-local-did: true #If this parameter is set, provisions the wallet with a local DID from the '--seed' parameter, instead of a public DID to use with a #Hyperledger Indy ledger.
 #wallet-allow-insecure-seed: false #If this parameter is set, allows to use a custom seed to create a local DID
 wallet-key: secret #Specifies the master key value to use to open the wallet
 #wallet-rekey: "<wallet-rekey>" #Specifies a new master key value to which to rotate and to open the wallet next time
-wallet-name: test2
+wallet-name: user
 wallet-type: askar-anoncreds
 wallet-storage-type: default #sqlite
 #wallet-test: false

@@ -61,7 +61,7 @@ async def report_pres_problem(client, pres_ex_id, description):
     return result
 
 # Sends a proof presentation
-async def send_presentation(client, pres_ex_id, cred_id):
+async def send_presentation(client, pres_ex_id, cred_id, cred_rev_id):
     result = await client.present_proof_v2_0.send_presentation(
         pres_ex_id = pres_ex_id,
         body = V20PresSpecByFormatRequest(
@@ -75,6 +75,7 @@ async def send_presentation(client, pres_ex_id, cred_id):
                 },
                 requested_predicates = {}, #IndyRequestedCredsRequestedPred()
                 self_attested_attributes = {},
+                    #"attr2_referent": cred_rev_id
                 trace = True
             ),
             #dif
@@ -90,7 +91,7 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
     timestamp = int(time.time())
     result = await client.present_proof_v2_0.send_proposal(
         body = V20PresProposalRequest(
-            auto_present=True,
+            auto_present = False,
             auto_remove = False,
             #comment = comment,
             connection_id = connection_id,
@@ -104,7 +105,7 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
                     nonce = random_nonce(),
                     requested_attributes={
                         "attr1_referent": AnoncredsPresentationReqAttrSpec(
-                            #name
+                            #name = "time_slot",
                             names=names,
                             non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
@@ -130,7 +131,7 @@ async def send_pres_request(client, pres_ex_id):
         pres_ex_id = pres_ex_id,
         body = V20PresentationSendRequestToProposal(
             auto_remove = False,
-            auto_verify = True,
+            auto_verify = False,
             trace = True
         )
     )
@@ -156,13 +157,17 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
                     nonce = random_nonce(),
                     requested_attributes={
                         "attr1_referent": AnoncredsPresentationReqAttrSpec(
-                            #name
+                            #name = "time_slot",
                             names = names,
                             non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
                                 "schema_name": schema_name
                             }]
-                        )
+                        ),
+                        "attr2_referent": {
+                            "name": "cred_rev_id",
+                            "self_attest_allowed": True
+                        }                      
                     },
                     requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
