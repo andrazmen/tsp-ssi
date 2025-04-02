@@ -156,6 +156,9 @@ async def handle_credential_webhook():
     elif event_data["state"] == "credential-received":
         cred_ex_id = event_data['cred_ex_id']
         print("Received VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
+    elif event_data["state"] == "credential-issued":
+        cred_ex_id = event_data['cred_ex_id']
+        print("Issued VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
 
     return jsonify({"status": "success"}), 200
 

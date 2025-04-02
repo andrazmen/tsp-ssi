@@ -1,11 +1,11 @@
-label: CEM
+label: edo
 #ADMIN
-admin: [0.0.0.0, 8031]
+admin: [0.0.0.0, 8041]
 #admin-api-key: <api-key>
 admin-insecure-mode: true #without API-key
 #no-receive-invites: false
 #help-link: <help-url>
-#webhook-url: http://localhost:5000/webhooks
+webhook-url: http://localhost:5100/webhooks
 #admin-client-max-request-size: ADMIN_CLIENT_MAX_REQUEST_SIZE
 #DEBUGGER
 #debug: false
@@ -14,24 +14,24 @@ admin-insecure-mode: true #without API-key
 debug-connections: true
 debug-credentials: true
 debug-presentations: true
-#debug-webhooks: true
-#invite: false #OOB invitation (QR)
-#connections-invite: true #URL invitation
-#invite-label: CEM-invitation
-#invite-multi-use: false
-#invite-public: false
-#invite-metadata-json: "<metadata-json>"
+debug-webhooks: true
+#invite: true #OOB invitation (URL)
+#connections-invite: true #connection protocol invitation
+#invite-label: test2-invitation
+#invite-multi-use: true
+#invite-public: true #all created invitations will use public DID 
+#invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
 #auto-accept-requests: true
 auto-respond-messages: true
-auto-respond-credential-proposal: true
-auto-respond-credential-offer: true
-auto-respond-credential-request: true
-auto-respond-presentation-proposal: true
-auto-respond-presentation-request: true
-auto-store-credential: true
-auto-verify-presentation: true
+#auto-respond-credential-proposal: true
+#auto-respond-credential-offer: true
+#auto-respond-credential-request: true
+#auto-respond-presentation-proposal: true
+#auto-respond-presentation-request: true
+#auto-store-credential: true
+#auto-verify-presentation: true
 #DISCOVER FEATURES
 #auto-disclose-features: false
 #disclose-features-list: "<yaml-file-path>"
@@ -44,7 +44,7 @@ auto-verify-presentation: true
 #plugin-config: "<plugin-config>"
 #plugin-config-value:
 #- "KEY=VALUE"
-endpoint: http://localhost:8030
+endpoint: http://localhost:8040
 #profile-endpoint: "<profile_endpoint>"
 #universal-resolver: false
 #universal-resolver-regex:
@@ -54,14 +54,14 @@ endpoint: http://localhost:8030
 tails-server-base-url: http://localhost:6543
 #tails-server-upload-url: "<tails-server-upload-url>"
 notify-revocation: true # Specifies that aca-py will notify credential recipients when revoking a credential it issued.
-#monitor-revocation-notification: false # Specifies that aca-py will emit webhooks on notification of revocation received.
+monitor-revocation-notification: true # Specifies that aca-py will emit webhooks on notification of revocation received.
 #anoncreds-legacy-revocation: "reject"
 #LEDGER
 #ledger-pool-name: "<ledger-pool-name>"
 #genesis-transactions: "<genesis-transactions>"
 #genesis-file: "<genesis-file>"
 genesis-url: http://193.138.1.21/genesis
-#no-ledger: false
+#no-ledger: true
 #read-only-ledger: false
 #ledger-keepalive: 5
 #ledger-socks-proxy: "<host:port>"
@@ -73,7 +73,7 @@ genesis-url: http://193.138.1.21/genesis
 #log-level: "info"
 #PROTOCOL
 auto-ping-connection: true
-auto-accept-intro-invitation-requests: true
+#auto-accept-intro-invitation-requests: true
 #invite-base-url: "<base-url>"
 #monitor-ping: true
 #monitor-forward: true
@@ -95,12 +95,12 @@ auto-provision: true #If the requested profile does not exist, initialize it wit
 #TRANSPORT
 #no-transport: false
 inbound-transport:
-- [http, 0.0.0.0, 8030]
+- [http, 0.0.0.0, 8040]
 outbound-transport: http
 #image-url: "<image-url>"
 #max-message-size: "<message-size>"
-#enable-undelivered-queue: false
-#max-outbound-retry: 4
+enable-undelivered-queue: true
+max-outbound-retry: 4
 #ws-heartbeat-interval: "<interval>"
 #ws-timeout-interval: "<interval>"
 #MEDIATION INVITATION
@@ -111,12 +111,12 @@ outbound-transport: http
 #default-mediator-id: "<mediation id>"
 #clear-default-mediator: false
 #WALLET
-seed: CEM00000000000000000000000000000
-#wallet-local-did: false #If this parameter is set, provisions the wallet with a local DID from the '--seed' parameter, instead of a public DID to use with a #Hyperledger Indy ledger.
+seed: edo00000000000000000000000000000
+#wallet-local-did: true #If this parameter is set, provisions the wallet with a local DID from the '--seed' parameter, instead of a public DID to use with a #Hyperledger Indy ledger.
 #wallet-allow-insecure-seed: false #If this parameter is set, allows to use a custom seed to create a local DID
 wallet-key: secret #Specifies the master key value to use to open the wallet
 #wallet-rekey: "<wallet-rekey>" #Specifies a new master key value to which to rotate and to open the wallet next time
-wallet-name: CEM
+wallet-name: edo
 wallet-type: askar-anoncreds
 wallet-storage-type: default #sqlite
 #wallet-test: false

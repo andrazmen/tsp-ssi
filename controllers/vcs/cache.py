@@ -3,12 +3,13 @@ import json
 
 from .check_revocation import get_rev_list
 
-#proof_cache = {} #memory
+proof_cache = {} #memory
 
-with open("vcs/utils/test.json") as f:
-        proof_cache = json.load(f)
+# TEST
+#with open("vcs/utils/test.json") as f:
+#        proof_cache = json.load(f)
 
-CACHE_EXPIRATION_TIME = 20 #86400 # 24 hours 
+CACHE_EXPIRATION_TIME = 300 #86400 # 24 hours 
 
 async def cache_proof(proof_id, did, connection_id, proof_identifiers, proof_data):
     current_time = int(time.time())
@@ -28,11 +29,9 @@ def validate_proof(proof_id):
     return False
 
 async def get_proof(did, submitter_did):
-    print(did)
     delete_list = []
     result = {}
     for p in proof_cache.items():
-        print(p)
         _, data = p
         if data['did'] == did:
             val = validate_proof(p[0])
@@ -59,7 +58,6 @@ async def get_proof(did, submitter_did):
         print("Removing proof cause it is not valid...")
         delete_proof(delete_list)
 
-    print(result)
     return result
 
 async def get_proofs():

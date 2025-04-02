@@ -165,9 +165,9 @@ async def handle_proof_webhook():
 
     elif event_data["state"] == "done":
         if event_data["role"] == "verifier":
-            if event_data["verified"] == "true":
-                print("Caching proof...")
-                asyncio.create_task(store_proof(event_data))
+            #if event_data["verified"] == "true":
+            print("Caching proof...")
+            asyncio.create_task(store_proof(event_data))
     return jsonify({"status": "success"}), 200
 
 # Access-control API
@@ -178,7 +178,7 @@ async def handle_acs_api():
         print("Recevied acs api request:", event_data)
         proof = await check_cache(event_data)
 
-        print(proof)
+        print(f"Valid proofs: {proof}")
         return jsonify(proof), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -238,7 +238,7 @@ async def check_cache(event_data):
         did = event_data["did"]
         result = await get_proof(did, my_did["did"])
 
-        print(result)
+        #print(result)
 
         return result
 
@@ -518,7 +518,9 @@ async def cli(stop_event: asyncio.Event):
         elif command.lower() == "proofs":
             try:
                 result = await get_proofs()
-                print("Cached proofs:", result)
+                print("Cached proofs:")
+                for r in result:
+                   print(r, "\n")
             except Exception as e:
                 print(f"Error fetching proofs from cache: {e}")            
 
