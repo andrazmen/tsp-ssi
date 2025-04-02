@@ -1,0 +1,7 @@
+{
+    "did": "did:sov:KNQMNG77kewjDqW15syTXT",
+    "data": {
+        "authorizer_id": "did:sov:WFkQumWz9ok6UXEKP496UA",
+        "authorizee_id": "did:sov:KzW7Y2H3yVdfJwicwPyreo"
+    }
+}

@@ -6,7 +6,6 @@ from urllib.parse import urlparse, parse_qs
 from aries_cloudcontroller import V20CredAttrSpec
 
 def decode(enc_str):
-    print("whw", enc_str)
     try:
         missing_padding = len(enc_str) % 4
         if missing_padding:

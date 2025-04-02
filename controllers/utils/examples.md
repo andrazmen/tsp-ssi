@@ -7,8 +7,6 @@
 **Auth proof request or proposal (names)** ["authorizer_id", "authorizer_role", "authorizee_id", "authorizee_role", "power_consumption", "power_forecast", "flexibility", "time_slot", "control_type", "description", "issue_datetime", "authorization_start", "authorization_end", "credential_type"]
 
 
-
-
     {
       "state": "done",
       "created_at": "2025-03-28T11:27:12.039098Z",

@@ -21,12 +21,6 @@ aca-py start --arg-file args/user.yaml
 ```
 cd aca-py
 source .venv_acapy/bin/activate
-aca-py start --arg-file args/user.yaml
-```
-
-```
-cd aca-py
-source .venv_acapy/bin/activate
 aca-py start --arg-file args/agg.yaml
 ```
 

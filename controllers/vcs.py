@@ -1,9 +1,11 @@
 import asyncio
 import json
+import os
 import sys
 import argparse
 import importlib.util
 from quart import Quart, request, jsonify
+import urllib
 from aries_cloudcontroller import (
     AcaPyClient
 )
@@ -23,6 +25,7 @@ app = Quart(__name__)
 # Global controller (aca-py client)
 port = None
 base_url = None
+genesis = None
 client: AcaPyClient = None
 #agent: AcaPyAgent = False
 invitation = None
@@ -49,9 +52,9 @@ async def startup():
         print(f"Error creating client: {e}")
         sys.exit(1)
 
-    # Create public invitation
-    #print("Creating public invitation...")
-    #asyncio.create_task(process_create_invitation(client))
+    # Fetch genesis file
+    print("Fetching genesis file...")
+    asyncio.create_task(process_fetch_genesis(genesis))
     
 # Serving controller
 @app.while_serving
@@ -155,12 +158,37 @@ async def handle_proof_webhook():
         proposal = event_data['by_format']
         print("Received vp proposal:", proposal, "with pres_ex_id:", pres_ex_id, "\n")
 
+    elif event_data["state"] == "presentation-received":
+        pres_ex_id = event_data['pres_ex_id']
+        pres = event_data['by_format']
+        print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
+
     elif event_data["state"] == "done":
         if event_data["role"] == "verifier":
             if event_data["verified"] == "true":
                 print("Caching proof...")
                 asyncio.create_task(store_proof(event_data))
     return jsonify({"status": "success"}), 200
+
+# Access-control API
+@app.route('/api/acs/', methods=['POST'])
+async def handle_acs_api():
+    try:
+        event_data = await request.get_json()
+        print("Recevied acs api request:", event_data)
+        proof = await check_cache(event_data)
+
+        print(proof)
+        return jsonify(proof), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Start up functions
+async def process_fetch_genesis(genesis_file_url):
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    target_local_path = f"{file_dir}/vcs/utils/genesis.txt"
+    urllib.request.urlretrieve(genesis_file_url, target_local_path)
+    return target_local_path
 
 # Webhook functions
 """
@@ -195,12 +223,27 @@ async def store_proof(event_data):
 
         did = result.to_dict()['their_did']
         proof_id = event_data["pres_ex_id"]
+        identifiers = event_data["by_format"]["pres"]["anoncreds"]["identifiers"]
         data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]
 
-        cache_proof(proof_id, did, conn_id, data)
+        await cache_proof(proof_id, did, conn_id, identifiers, data)
 
     except Exception as e:
-        print(f"Error storing proof: {e}")      
+        print(f"Error storing proof: {e}")    
+
+# API functions
+async def check_cache(event_data):
+    try:
+        my_did = await get_public_did(client)
+        did = event_data["did"]
+        result = await get_proof(did, my_did["did"])
+
+        print(result)
+
+        return result
+
+    except Exception as e:
+        print(f"Error getting proof: {e}")      
 
 # CLI
 async def cli(stop_event: asyncio.Event):
@@ -474,7 +517,7 @@ async def cli(stop_event: asyncio.Event):
         ## CACHE
         elif command.lower() == "proofs":
             try:
-                result = get_proofs()
+                result = await get_proofs()
                 print("Cached proofs:", result)
             except Exception as e:
                 print(f"Error fetching proofs from cache: {e}")            
@@ -499,5 +542,6 @@ if __name__ == "__main__":
     schema_name_conf = config.schema_name
     schema_version_conf = config.schema_version
     invitation = config.invitation
+    genesis = config.genesis
     
     asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))

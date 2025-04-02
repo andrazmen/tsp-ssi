@@ -3,3 +3,9 @@ async def check_agent():
 
     print(result)
     return result
+
+async def get_config():
+    result = await client.server.get_config
+
+    print(result)
+    return result

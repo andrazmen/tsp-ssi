@@ -99,7 +99,7 @@ async def main():
 
     pres_json["identifiers"][0]["timestamp"] = timestamp
     mod_pres = json.dumps(pres_json)
-    pres = Presentation.load(pres_json)
+    pres = Presentation.load(mod_json)
     print("Presentation:", pres.to_json(), "\n")
 
     with open("req.json") as f:

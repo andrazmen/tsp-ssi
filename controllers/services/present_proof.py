@@ -68,14 +68,15 @@ async def send_presentation(client, pres_ex_id, cred_id, cred_rev_id):
             auto_remove = False,
             anoncreds = IndyPresSpec(
                 requested_attributes={
-                    "attr1_referent": IndyRequestedCredsRequestedAttr(
+                    "auth_attr": IndyRequestedCredsRequestedAttr(
                         cred_id=cred_id, 
                         revealed=True
                     )
                 },
                 requested_predicates = {}, #IndyRequestedCredsRequestedPred()
-                self_attested_attributes = {},
-                    #"attr2_referent": cred_rev_id
+                self_attested_attributes = {
+                    "cred_rev_id": cred_rev_id
+                },
                 trace = True
             ),
             #dif
@@ -104,14 +105,18 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
                     ),
                     nonce = random_nonce(),
                     requested_attributes={
-                        "attr1_referent": AnoncredsPresentationReqAttrSpec(
+                        "auth_attr": AnoncredsPresentationReqAttrSpec(
                             #name = "time_slot",
                             names=names,
                             non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
                                 "schema_name": schema_name
                             }]
-                        )
+                        ),
+                        "cred_rev_id": {
+                            "name": "cred_rev_id",
+                            "self_attest_allowed": True
+                        } 
                     },
                     requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
@@ -156,7 +161,7 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
                     ),
                     nonce = random_nonce(),
                     requested_attributes={
-                        "attr1_referent": AnoncredsPresentationReqAttrSpec(
+                        "auth_attr": AnoncredsPresentationReqAttrSpec(
                             #name = "time_slot",
                             names = names,
                             non_revoked={"from": 0, "to": timestamp},
@@ -164,7 +169,7 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
                                 "schema_name": schema_name
                             }]
                         ),
-                        "attr2_referent": {
+                        "cred_rev_id": {
                             "name": "cred_rev_id",
                             "self_attest_allowed": True
                         }                      
