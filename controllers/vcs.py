@@ -178,7 +178,7 @@ async def handle_acs_api():
         print("Recevied acs api request:", event_data)
         proof = await check_cache(event_data)
 
-        print(f"Valid proofs: {proof}")
+        print(f"Valid proofs: {proof}", "\n")
         return jsonify(proof), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -519,8 +519,9 @@ async def cli(stop_event: asyncio.Event):
             try:
                 result = await get_proofs()
                 print("Cached proofs:")
-                for r in result:
-                   print(r, "\n")
+                for key, value in result.items():
+                   print(key, "\n")
+                   print(value, "\n")
             except Exception as e:
                 print(f"Error fetching proofs from cache: {e}")            
 

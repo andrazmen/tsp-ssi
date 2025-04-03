@@ -745,10 +745,13 @@ async def cli(stop_event: asyncio.Event):
             try:
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
-                print("Enter credential ID:")
-                cred_id = input()
-                print("Credential revocation ID:")
-                cred_rev_id = input()
+                creds = await get_matching_credentials(client, pres_ex_id)
+                cred_rev_id = creds[0].cred_info.cred_rev_id
+                cred_id = creds[0].cred_info.referent
+                for c in creds:
+                    if c.cred_info.cred_rev_id > cred_rev_id:
+                        cred_rev_id = c.cred_info.cred_rev_id
+                        cred_id = c.cred_info.referent
                 result = await send_presentation(client, pres_ex_id, cred_id, cred_rev_id)
                 print(f"Presentation sent: {result}")
             except Exception as e:

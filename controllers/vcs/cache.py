@@ -3,17 +3,19 @@ import json
 
 from .check_revocation import get_rev_list
 
-proof_cache = {} #memory
+#proof_cache = {} #memory
 
-# TEST
-#with open("vcs/utils/test.json") as f:
-#        proof_cache = json.load(f)
+# file
+with open("vcs/cache.json") as f:
+    proof_cache = json.load(f)
 
 CACHE_EXPIRATION_TIME = 300 #86400 # 24 hours 
 
 async def cache_proof(proof_id, did, connection_id, proof_identifiers, proof_data):
     current_time = int(time.time())
     proof_cache[proof_id] = {'did': did, 'connection_id': connection_id, 'identifiers': proof_identifiers, 'data': proof_data, 'timestamp': current_time}
+    with open("cache.json", "w") as f:
+        json.dump(proof_cache, f)
     print("Proof cached:", proof_cache[proof_id])
     print("Cache:", proof_cache)
 
@@ -38,24 +40,26 @@ async def get_proof(did, submitter_did):
             if val == True:
                 result[p[0]] = data
             else:
-                print("Proof is no longer valid, checking revocation status...")
+                print("Proof is no longer valid, checking revocation status...", "\n")
                 try:
                     cred_rev_id = data["data"]["self_attested_attrs"]["cred_rev_id"]
                     rev_reg = data['identifiers'][0]["rev_reg_id"]
                     response = await get_rev_list(submitter_did, rev_reg, cred_rev_id)
                     if response == True:
-                        print("Credential in proof is revoked, ready to remove it from cache...")
+                        print("Credential in proof is revoked, ready to remove it from cache...", "\n")
                         delete_list.append(p[0])
                     elif response == False:
                         current_time = int(time.time())
-                        print("Credential in proof is not revoked, updating timestamp...")
+                        print("Credential in proof is not revoked, updating timestamp...", "\n")
                         proof_cache[p[0]]["timestamp"] = current_time
+                        with open("vcs/cache.json", "w") as f:
+                            json.dump(proof_cache, f)
                         result[p[0]] = data
                 except Exception as e:
                     print(f"Error checking revocation status: {e}")
 
     if delete_list: 
-        print("Removing proof cause it is not valid...")
+        print("Removing proof cause it is not valid...", "\n")
         delete_proof(delete_list)
 
     return result
@@ -68,17 +72,8 @@ def delete_proof(delete_list):
         if proof_id in proof_cache:
             proof_cache.pop(proof_id, None)
 
-            print("Proof removed from cache!")
+            with open("vcs/cache.json", "w") as f:
+                json.dump(proof_cache, f)
+
+            print("Proof removed from cache!", "\n")
     return None
-
-
-"""
-# TEST        
-cache_proof(1, "qwer", "aba-asd", {'a': 'a', 'b': 'b'})
-cache_proof(2, "ertz", "bas-kjh", {'c': 'c', 'd': 'd'})
-cache_proof(3, "tzui", "lkl-qwe", {'e': 'e', 'f': 'f'})
-cache_proof(4, "ertz", "uiz-poi", {'g': 'gc', 'h': 'h'})
-print(proof_cache)
-get_proof("ertz")
-print(proof_cache)
-"""
