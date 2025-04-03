@@ -10,7 +10,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from vcs.cache import (cache_proof, get_proof, get_proofs)
+from vcs.cache import (get_proof)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
@@ -163,23 +163,25 @@ async def handle_proof_webhook():
         pres = event_data['by_format']
         print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
 
-    elif event_data["state"] == "done":
-        if event_data["role"] == "verifier":
+    #elif event_data["state"] == "done":
+        #if event_data["role"] == "verifier":
             #if event_data["verified"] == "true":
-            print("Caching proof...")
-            asyncio.create_task(store_proof(event_data))
-    return jsonify({"status": "success"}), 200
+            #print("Caching proof...")
+            #asyncio.create_task(store_proof(event_data))
+    #return jsonify({"status": "success"}), 200
 
 # Access-control API
 @app.route('/api/acs/', methods=['POST'])
 async def handle_acs_api():
     try:
         event_data = await request.get_json()
-        print("Recevied acs api request:", event_data)
-        proof = await check_cache(event_data)
+        print("Received acs api request:", event_data)
+        did = event_data["did"]
 
-        print(f"Valid proofs: {proof}", "\n")
-        return jsonify(proof), 200
+        proofs = await check_proofs(did)
+
+        print(f"Valid proofs: {proofs}", "\n")
+        return jsonify(proofs), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -214,31 +216,20 @@ async def process_request(event_data):
         await accept_request(client, event_data["connection_id"])
 
     except Exception as e:
-        print(f"Error processing request: {e}")
-
-async def store_proof(event_data):
-    try:
-        conn_id = event_data["connection_id"]
-        result = await get_connection(client, conn_id)
-
-        did = result.to_dict()['their_did']
-        proof_id = event_data["pres_ex_id"]
-        identifiers = event_data["by_format"]["pres"]["anoncreds"]["identifiers"]
-        data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]
-
-        await cache_proof(proof_id, did, conn_id, identifiers, data)
-
-    except Exception as e:
-        print(f"Error storing proof: {e}")    
+        print(f"Error processing request: {e}") 
 
 # API functions
-async def check_cache(event_data):
+async def check_proofs(did):
     try:
+        conns = await get_connections(client, state="active", their_did=did)
+        connection_id = conns.to_dict()["results"][0]["connection_id"]
+        result = await get_pres_records(client, connection_id, role="verifier", state="done")
+        records_dict = result.to_dict()
+        records = records_dict["results"]
+        
         my_did = await get_public_did(client)
-        did = event_data["did"]
-        result = await get_proof(did, my_did["did"])
 
-        #print(result)
+        result = await get_proof(my_did["did"], did, records)
 
         return result
 
@@ -517,13 +508,17 @@ async def cli(stop_event: asyncio.Event):
         ## CACHE
         elif command.lower() == "proofs":
             try:
-                result = await get_proofs()
-                print("Cached proofs:")
-                for key, value in result.items():
-                   print(key, "\n")
-                   print(value, "\n")
+                result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
+                records_dict = result.to_dict()
+                records = records_dict["results"]
+                print("Stored proofs:", "\n")
+                for r in records:
+                    proof = {}
+                    proof["connection_id"] = r["connection_id"]
+                    proof["data"] = r["by_format"]["pres"]["anoncreds"]["requested_proof"]
+                    print(proof, "\n")
             except Exception as e:
-                print(f"Error fetching proofs from cache: {e}")            
+                print(f"Error fetching stored proofs: {e}")            
 
         else:
             print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")

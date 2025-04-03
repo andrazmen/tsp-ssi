@@ -176,5 +176,8 @@ python3 controller.py --config config/user_config.py
 - <s>ostal sem pri present-proof: send_pres_request_free ima names passan kot parameter - stestiraj! enako naredi še za non_revoked da vzame trenutni timestamp in enako za ostale funkcije!</s>
 
 **02/04:**
-- dodaj v matching vc, da vzame vc z najvišjim cred_rev_id
+- <s>dodaj v matching vc, da vzame vc z najvišjim cred_rev_id</s>
 - razišči kje je težava s preverjanjem vp-ja, ko ponovno izdamo vc (trenutno se vp zapiše v cache tudi če ni veljaven) - reši težavo ali pa dodaj, da se vp izven agenta preveri na ledgerjuu preden se shrani v cache
+
+**03/04:**
+- preimenuj cache.py ker ne gre dejansko za cache + uredi fajle
