@@ -144,12 +144,225 @@ python3 controller.py --config config/user_config.py
 ```
 
 ### Universal controller
+Universal controller provides following CLI commands:
 
-**TODO**
+- `dids`  
+  Lists all DID identifiers saved in digital wallet.
+
+- `create did`  
+  Create new DID identifier with sov method.
+
+- `public did`  
+  Lists current public DID identifier.
+
+- `assign did`  
+  Assigns DID identifier for the new public DID identifier.
+
+- `url`  
+  Returns the URL of last created invitation.
+
+- `create inv`  
+  Creates new connection invitation and displays invitation URL.
+
+- `receive inv`  
+  Takes invitation URL and extracts connection invitation.
+
+- `accept inv`  
+  Agrees on received connection invitation and send DID Exchange request.
+
+- `delete inv`  
+  Deletes connections created with specific invitation.
+
+- `accept didx req`  
+  Accepts DID Exchange request and answers back with DID Exchange response.
+
+- `reject didx`  
+  Rejects DID Exchange request or response and cancels establishing connection process.
+
+- `conns`  
+  Lists all connections (all possible states).
+
+- `conn`  
+  Lists specific connection and its data.
+
+- `delete conn`  
+  Removes connection so its no longer usable (can't send or receive any messages or requests).
+
+- `ping`  
+  Sends trust ping over selected connection.
+
+- `message`  
+  Sends message over connection using Basic Message protocol.
+
+- `schemas`  
+  Returns all published schemas.
+
+- `schema`  
+  Lists selected pubished schema and its information.
+
+- `publish schema`  
+  Publishes schema with defined name, version and attributes.
+
+- `cred defs`  
+  Lists all created credential definitions IDs.
+
+- `cred def`  
+  Returns selected credential definition ID and its information.
+
+- `create cred def`  
+  Creates new credential definition based on selected published schema.
+
+- `rev regs`  
+  Lists all revocation registries IDs created when credential definition was created.
+
+- `rev reg`  
+  Returns selected revocation registry ID and its information.
+
+- `active rev reg`  
+  Lists current active revocation registry (two are created, when first is full second is used).
+
+- `rev reg issued`  
+  Returns number of issued credentials under selected revocation registry.
+
+- `rev reg issued details`  
+  Returns details of issued credentials under selected revocation registry.
+
+- `revoke`  
+  Revokes selected credential.
+
+- `rev status`  
+  Returns credential's revocation status (either stored (holder) or issued (issuer)).
+
+- `vc records`  
+  Lists all credential exchange records.
+
+- `vc record`  
+  Returns selected credential exchange record.
+
+- `delete vc record`  
+  Removes selected credential exchange record.
+
+- `vc problem`  
+  Sends credential exchange problem report and abandons the exchange.
+
+- `vc offer`  
+  Sends credential offer.
+
+- `vc request`  
+  Send credential request.
+
+- `issue vc`  
+  Issues credential.
+
+- `store vc`  
+  Stores received credential in digital wallet.
+
+- `vcs`  
+  Lists all stored credentials.
+
+- `vc`  
+  Returns selected credential and its information.
+
+- `delete vc`  
+  Removes stored credential from digital wallet.
+
+- `vp records`  
+  Lists all presentation exchange records.
+
+- `vp record`  
+  List selected presentation exchange record.
+
+- `delete vp record`  
+  Removes selected presentation exchange record.
+
+- `vp problem`  
+  Sends presentation exchange problem report and abandons the exchange.
+
+- `vp proposal`  
+  Sends presentation proposal.
+
+- `vp request`  
+  Sends presentation request.
+
+- `matching vc`  
+  Lists credentials that match received presentation request.
+
+- `send vp`  
+  Sends presentation.
+
+- `verify`  
+  Verifies received presentation.
+
 
 ### VCS controller
+VCS controller provides following CLI commands:
 
-**TODO**
+- `dids`  
+  Lists all DID identifiers saved in digital wallet.
+
+- `create did`  
+  Create new DID identifier with sov method.
+
+- `public did`  
+  Lists current public DID identifier.
+
+- `assign did`  
+  Assigns DID identifier for the new public DID identifier.
+
+- `url`  
+  Returns the URL of last created invitation.
+
+- `create inv`  
+  Creates new connection invitation and displays invitation URL.
+
+- `receive inv`  
+  Takes invitation URL and extracts connection invitation.
+
+- `accept inv`  
+  Agrees on received connection invitation and send DID Exchange request.
+
+- `delete inv`  
+  Deletes connections created with specific invitation.
+
+- `accept didx req`  
+  Accepts DID Exchange request and answers back with DID Exchange response.
+
+- `reject didx`  
+  Rejects DID Exchange request or response and cancels establishing connection process.
+
+- `conns`  
+  Lists all connections (all possible states).
+
+- `conn`  
+  Lists specific connection and its data.
+
+- `delete conn`  
+  Removes connection so its no longer usable (can't send or receive any messages or requests).
+
+- `ping`  
+  Sends trust ping over selected connection.
+
+- `message`  
+  Sends message over connection using Basic Message protocol.
+
+- `vp records`  
+  Lists all presentation exchange records.
+
+- `vp record`  
+  List selected presentation exchange record.
+
+- `vp problem`  
+  Sends presentation exchange problem report and abandons the exchange.
+
+- `vp request`  
+  Sends presentation request.
+
+- `verify`  
+  Verifies received presentation.
+
+- `proofs`  
+  Lists all verified and valid presentations. 
+
 
 ## TODO
 - (lokalno) briši env za von-network in tails-server, ker se jih zaganja v dockerju
