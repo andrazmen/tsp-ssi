@@ -23,3 +23,13 @@ async def accept_request(client, connection_id):
     print(result)
 
     return result
+
+async def reject(client, connection_id, description):
+    result = await client.did_exchange.reject(
+        conn_id = connection_id,
+        reason = description
+    )
+
+    print(result)
+
+    return result

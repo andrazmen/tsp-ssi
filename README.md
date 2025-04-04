@@ -106,15 +106,9 @@ Start docker container:
 ```
 
 ## Running a code
-## Starting aca-py agents
-```bash
-source .venv_aca-py/bin/activate
-
-aca-py start --arg-file args/test1.yaml
-aca-py start --arg-file args/test2.yaml
-```
-
 ## Starting von-network and indy tails server
+VON-network is a development and test Hyperledger Indy Node network. Indy Tails Server is file server that is designed to receive, store and serve Hyperledger Indy Tails files, essential for credential revocation.
+
 ```bash
 cd von-network
 
@@ -127,17 +121,19 @@ cd indy-tails-server/docker
 ./manage start 193.138.1.21 --logs
 ```
 
-## Starting test controller
+## Starting aca-py agents
+Directory ```args``` contains ```.yaml``` files with start up parameters for ACA-Py agents. To start ```user``` digital agent ```--arg-file``` argument is needed to specify the path to a ACA-Py arguments file. To run ACA-py agent that connects to previously started von-network, the DID needs to be published. The easiest way to do this is to use von-network web server running on ```http://193.138.1.21```, where DID is registered from the seed defined in argument file under parameter ```seed```.
+
 ```bash
-source .venv_cloudcontroller/bin/activate
+source .venv_aca-py/bin/activate
 
-cd controllers
-
-python3 test1.py
+aca-py start --arg-file args/user.yaml
 ```
 
 ## Starting controller
-This is an example of User entity controller:
+Controller is business logic that controls ACA-py instance through HTTP requests and webhook notifications. In order to run controller logic, ACA-py agent need to run! 
+
+Directory ```controllers``` contains controller logic. File ```controller.py``` implements universal controller used for User, Aggregator, EDO and Technical Aggregator instances. VCS has its own controller logic wrapped in ```vcs.py``` file. Directory ```config``` contains configuration files for controllers. Accordingly, ```--config``` argument is required to specify the path to a specific configuration file.
 
 ```bash
 source .venv_cloudcontroller/bin/activate
@@ -146,6 +142,14 @@ cd controllers
 
 python3 controller.py --config config/user_config.py 
 ```
+
+### Universal controller
+
+**TODO**
+
+### VCS controller
+
+**TODO**
 
 ## TODO
 - (lokalno) briši env za von-network in tails-server, ker se jih zaganja v dockerju
@@ -180,4 +184,7 @@ python3 controller.py --config config/user_config.py
 - razišči kje je težava s preverjanjem vp-ja, ko ponovno izdamo vc (trenutno se vp zapiše v cache tudi če ni veljaven) - reši težavo ali pa dodaj, da se vp izven agenta preveri na ledgerjuu preden se shrani v cache
 
 **03/04:**
-- preimenuj cache.py ker ne gre dejansko za cache + uredi fajle
+- <s>preimenuj cache.py ker ne gre dejansko za cache + uredi fajle</s>
+
+**04/04:**
+- opiši upravljanje universal in vcs kontrolerja

@@ -21,3 +21,10 @@ async def get_connection(client, conn_id):
     )
 
     return result
+
+async def delete_connection(client, conn_id):
+    result = await client.connection.delete_connection(
+        conn_id = conn_id
+    )
+
+    return result

@@ -54,7 +54,7 @@ async def revoke(client, comment, conn_id, cred_ex_id, thread_id):
 
     return result
 
-async def check_revocation_status(client, rev_reg_id):
-    response = await client.revocation.get_rev_reg_entry(rev_reg_id)
-    print(response)
+async def check_revocation_status(client, cred_ex_id):
+    response = await client.anoncreds_revocation.get_cred_rev_record(cred_ex_id)
+
     return response

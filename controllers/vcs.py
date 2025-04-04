@@ -10,7 +10,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from vcs.cache import (get_proof)
+from vcs.proof_handler import (get_proof)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
@@ -163,12 +163,7 @@ async def handle_proof_webhook():
         pres = event_data['by_format']
         print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
 
-    #elif event_data["state"] == "done":
-        #if event_data["role"] == "verifier":
-            #if event_data["verified"] == "true":
-            #print("Caching proof...")
-            #asyncio.create_task(store_proof(event_data))
-    #return jsonify({"status": "success"}), 200
+    return jsonify({"status": "success"}), 200
 
 # Access-control API
 @app.route('/api/acs/', methods=['POST'])
@@ -308,7 +303,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Invitation removed: {result}")
             except Exception as e:
                 print(f"Error processing invitation creation: {e}")
-        elif command.startswith("invitation"):
+        elif command.startswith("receive inv"):
             print("Enter invitation URL:")
             try:
                 url = input() 
@@ -334,9 +329,19 @@ async def cli(stop_event: asyncio.Event):
                 print(f"DIDx request accepted: {result}")
             except Exception as e:
                 print(f"Error accepting DIDx request: {e}")
+        elif command.lower() == "reject didx":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                print("Enter reason for rejection:")
+                description = input()
+                result = await reject(client, connection_id, description)
+                print(f"DIDx rejected: {result}")
+            except Exception as e:
+                print(f"Error rejecting DIDx: {e}")
         
         # CONNECTIONS
-        elif command.startswith("connections"):
+        elif command.startswith("conns"):
             try:
                 print("Enter connection state:")
                 conn_state = input()
@@ -357,14 +362,22 @@ async def cli(stop_event: asyncio.Event):
                    print(c, "\n")
             except Exception as e:
                 print(f"Error getting connections: {e}")
-        elif command.lower() == "connection":
+        elif command.lower() == "conn":
             try:
                 print("Enter connection ID:")
                 conn_id = input()
                 result = await get_connection(client, conn_id)
-                print("Connection:", result)
+                print(f"Connection record for connection {connection_id}: {result}")
             except Exception as e:
-                print(f"Error getting connection: {e}")            
+                print(f"Error getting connection: {e}")   
+        elif command.lower() == "delete conn":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                result = await delete_connection(client, connection_id)
+                print(f"Connection record for connection {connection_id} deleted: {result}")
+            except Exception as e:
+                print(f"Error deleting connection: {e}")         
         
         # TRUST PING
         elif command.lower() == "ping":
@@ -396,7 +409,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
                 result = await get_pres_record(client, pres_ex_id)
-                print(f"Presentation exchange record: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation exchange record: {result_dict}")
             except Exception as e:
                 print(f"Error getting presentation exchange record: {e}")
         elif command.lower() == "vp records":
@@ -423,7 +437,7 @@ async def cli(stop_event: asyncio.Event):
                 records_dict = result.to_dict()
                 records = records_dict["results"]
                 for r in records:
-                   print(r, "\n")
+                   print(f"Presentation exchange record {r["pres_ex_id"]}:\n{r}\n")
             except Exception as e:
                 print(f"Error getting presentation exchange records: {e}")
         elif command.lower() == "delete vp record":
@@ -434,14 +448,6 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Presentation exchange record deleted: {result}")
             except Exception as e:
                 print(f"Error deleting presentation exchange record: {e}")
-        elif command.lower() == "matching vc":
-            try:
-                print("Enter presentation exchange ID:")
-                pres_ex_id = input()
-                result = await get_matching_credentials(client, pres_ex_id)
-                print(f"Matching credentials: {result}")
-            except Exception as e:
-                print(f"Error getting matching credentials: {e}")
         elif command.lower() == "vp problem":
             try:
                 print("Enter presentation exchange ID:")
@@ -452,28 +458,6 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Problem report sent: {result}")
             except Exception as e:
                 print(f"Error sending problem report: {e}")
-        elif command.lower() == "send vp":
-            try:
-                print("Enter presentation exchange ID:")
-                pres_ex_id = input()
-                print("Enter credential ID:")
-                cred_id = input()
-                result = await send_presentation(client, pres_ex_id, cred_id)
-                print(f"Presentation sent: {result}")
-            except Exception as e:
-                print(f"Error sending presentation: {e}")
-        elif command.lower() == "vp proposal":
-            try:
-                print("Enter connection ID:")
-                connection_id = input()
-                print("Enter schema name:")
-                schema_name = input()
-                print("Enter attributes list:")
-                names = json.loads(input())
-                result = await send_pres_proposal(client, connection_id, names, schema_name)
-                print(f"Presentation proposal sent: {result}")
-            except Exception as e:
-                print(f"Error sending presentation proposal: {e}")
         elif command.lower() == "vp request":
             try:
                 print("Type '0' for request in reference to proposal or '1' for free request:" )
@@ -482,7 +466,8 @@ async def cli(stop_event: asyncio.Event):
                     print("Enter presentation exchange ID:")
                     pres_ex_id = input()
                     result = await send_pres_request(client, pres_ex_id)
-                    print(f"Request sent: {result}")
+                    result_dict = result.to_dict()
+                    print(f"Request sent: {result_dict}")
                 elif type == "1":
                     print("Enter connection ID:")
                     connection_id = input()
@@ -491,7 +476,8 @@ async def cli(stop_event: asyncio.Event):
                     print("Enter attributes list:")
                     names = json.loads(input())
                     result = await send_pres_request_free(client, connection_id, names, schema_name)
-                    print(f"Request sent: {result}")
+                    result_dict = result.to_dict()
+                    print(f"Request sent: {result_dict}")
                 else:
                     print("Invalid request")
             except Exception as e:
@@ -501,19 +487,21 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
                 result = await verify_presentation(client, pres_ex_id)
-                print(f"Presentation verified: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation verified: {result_dict}")
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 
-        ## CACHE
+        ## PROOFS
         elif command.lower() == "proofs":
             try:
                 result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
                 records_dict = result.to_dict()
                 records = records_dict["results"]
-                print("Stored proofs:", "\n")
+                print("Stored proofs:")
                 for r in records:
                     proof = {}
+                    proof["pres_ex_id"] = r["pres_ex_id"]
                     proof["connection_id"] = r["connection_id"]
                     proof["data"] = r["by_format"]["pres"]["anoncreds"]["requested_proof"]
                     print(proof, "\n")
@@ -521,12 +509,10 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error fetching stored proofs: {e}")            
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, vp records, vp record, delete vp record, vp problem, vp request, verify, proofs")
         
 # Main
 if __name__ == "__main__":
-    #asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))
-
     parser = argparse.ArgumentParser(description="Run the universal controller with a custom config file.")
     parser.add_argument("--config", type=str, required=True, help="Path to the Python config file.")
 

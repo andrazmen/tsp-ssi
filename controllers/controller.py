@@ -11,9 +11,9 @@ from aries_cloudcontroller import (
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
-from services.connections import get_connections
+from services.connections import (get_connections, get_connection, delete_connection)
 from services.trust_ping import send_ping
-from services.did_exchange import (accept_invitation, accept_request)
+from services.did_exchange import (accept_invitation, accept_request, reject)
 from services.basic_message import send_message
 from services.schemas import (get_schemas, get_schema, publish_schema)
 from services.credential_definitions import (get_cred_def, get_cred_defs, create_cred_def)
@@ -102,7 +102,7 @@ async def handle_conn_webhook():
     event_data = await request.get_json()
     print("Received Webhook Connection Event:", event_data, "\n")
 
-    if event_data["state"] == "invitation" and event_data["rfc23_state"] == "invitation-received":
+    if event_data["state"] == "invitation" and event_data.get("rfc23_state") == "invitation-received":
         print("Invitation received!\n")
 
         if event_data["connection_protocol"] == "didexchange/1.1":
@@ -113,7 +113,7 @@ async def handle_conn_webhook():
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
 
-    elif event_data["state"] == "request" and event_data["rfc23_state"] == "request-received":
+    elif event_data["state"] == "request" and event_data.get("rfc23_state") == "request-received":
         print("Request received!\n")
 
         if event_data["connection_protocol"] == "didexchange/1.1":
@@ -124,7 +124,7 @@ async def handle_conn_webhook():
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
 
-    print("Connection state:", event_data["state"], event_data["rfc23_state"], "\n")
+    print("Connection state:", event_data["state"], event_data.get("rfc23_state"), "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -306,7 +306,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Invitation removed: {result}")
             except Exception as e:
                 print(f"Error processing invitation creation: {e}")
-        elif command.startswith("invitation"):
+        elif command.startswith("receive inv"):
             print("Enter invitation URL:")
             try:
                 url = input() 
@@ -332,9 +332,20 @@ async def cli(stop_event: asyncio.Event):
                 print(f"DIDx request accepted: {result}")
             except Exception as e:
                 print(f"Error accepting DIDx request: {e}")
+
+        elif command.lower() == "reject didx":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                print("Enter reason for rejection:")
+                description = input()
+                result = await reject(client, connection_id, description)
+                print(f"DIDx rejected: {result}")
+            except Exception as e:
+                print(f"Error rejecting DIDx: {e}")
         
         # CONNECTIONS
-        elif command.startswith("connections"):
+        elif command.startswith("conns"):
             try:
                 print("Enter connection state:")
                 conn_state = input()
@@ -355,6 +366,24 @@ async def cli(stop_event: asyncio.Event):
                    print(c, "\n")
             except Exception as e:
                 print(f"Error getting connections: {e}")
+
+        elif command.lower() == "conn":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                result = await get_connection(client, connection_id)
+                print(f"Connection record for connection {connection_id}: {result}")
+            except Exception as e:
+                print(f"Error fetching connection: {e}")
+
+        elif command.lower() == "delete conn":
+            try:
+                print("Enter connection ID:")
+                connection_id = input()
+                result = await delete_connection(client, connection_id)
+                print(f"Connection record for connection {connection_id} deleted: {result}")
+            except Exception as e:
+                print(f"Error deleting connection: {e}")
         
         # TRUST PING
         elif command.lower() == "ping":
@@ -402,7 +431,8 @@ async def cli(stop_event: asyncio.Event):
                 else:
                     schema_version = None
                 result = await get_schemas(client, schema_issuer_did, schema_name, schema_version)
-                print("\n", result)
+                result_dict = result.to_dict()
+                print(f"Published schemas:\n{result_dict["schema_ids"]}")
             except Exception as e:
                 print(f"Error getting schemas: {e}")
         elif command.lower() == "schema":
@@ -410,7 +440,8 @@ async def cli(stop_event: asyncio.Event):
             try:
                 schema_id = input()
                 result = await get_schema(client, schema_id)
-                print(f"Schema: {result}")
+                result_dict = result.to_dict()
+                print(f"\nSchema: {result_dict}")
             except Exception as e:
                 print(f"Error getting schema: {e}")
         elif command.lower() == "publish schema":
@@ -437,7 +468,8 @@ async def cli(stop_event: asyncio.Event):
                 else:
                     attributes = schema_attr_conf
                 result = await publish_schema(client, issuer_did, attributes, schema_name, schema_version)
-                print(f"Schema created: {result}")
+                result_dict = result.to_dict()
+                print(f"Schema created: {result_dict}")
             except Exception as e:
                 print(f"Error publishing schema: {e}")   
 
@@ -469,7 +501,8 @@ async def cli(stop_event: asyncio.Event):
                 else:
                     schema_version = None
                 result = await get_cred_defs(client, issuer_id, schema_id, schema_name, schema_version)
-                print(f"Credential definitions: {result}")
+                result_dict = result.to_dict()
+                print(f"Credential definitions:\n{result_dict["credential_definition_ids"]}")      
             except Exception as e:
                 print(f"Error getting credential definitions: {e}")
         elif command.lower() == "cred def":
@@ -477,7 +510,8 @@ async def cli(stop_event: asyncio.Event):
             try:
                 cred_def_id = input()
                 result = await get_cred_def(client, cred_def_id)
-                print(f"Credential definition: {result}")
+                result_dict = result.to_dict()
+                print(f"Credential definition: {result_dict}")
             except Exception as e:
                 print(f"Error getting credential definition: {e}")
         elif command.lower() == "create cred def":
@@ -498,7 +532,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter credential definition ID:")
                 cred_def_id = input()
                 result = await get_active_rev_reg(client, cred_def_id)
-                print(f"Active revocation registry: {result}")
+                result_dict = result.to_dict()
+                print(f"Active revocation registry: {result_dict["result"]}")
             except Exception as e:
                 print(f"Error getting active revocation registry: {e}")
         elif command.lower() == "rev reg issued":
@@ -522,7 +557,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter credential definition ID:")
                 cred_def_id = input()
                 result = await get_rev_regs(client, cred_def_id)
-                print(f"Revocation registries : {result}")
+                result_dict = result.to_dict()
+                print(f"Revocation registries : {result_dict}")
             except Exception as e:
                 print(f"Error getting revocation registries: {e}")
         elif command.lower() == "rev reg":
@@ -530,7 +566,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter revocation registry ID:")
                 rev_reg_id = input()
                 result = await get_rev_reg(client, rev_reg_id)
-                print(f"Revocation registry : {result}")
+                result_dict = result.to_dict()
+                print(f"Revocation registry : {result_dict["result"]}")
             except Exception as e:
                 print(f"Error getting revocation registry: {e}")
         elif command.lower() == "revoke":
@@ -547,6 +584,25 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential revoked: {result}")
             except Exception as e:
                 print(f"Error revoking credential: {e}")
+        elif command.lower() == "rev status":
+            try:
+                print("Type '0' for issued or '1' for stored credentials:")
+                type = input()
+                if type == "0":
+                    print("Enter credential exchange ID:")
+                    cred_ex_id = input()
+                    result = await check_revocation_status(client, cred_ex_id)
+                    result_dict = result.to_dict()
+                    print(f"Credential revocation status: {result_dict}")
+                elif type == "1":
+                    print("Enter credential ID:")
+                    cred_id = input()
+                    result = await get_revocation_status(client, cred_id)
+                    print(f"Credential revocation status: {result}")
+                else:
+                    print("Invalid request")
+            except Exception as e:
+                print(f"Error getting credential revocation status: {e}")
 
         # ISSUE VC
         elif command.lower() == "vc records":
@@ -573,7 +629,7 @@ async def cli(stop_event: asyncio.Event):
                 records_dict = result.to_dict()
                 records = records_dict["results"]
                 for r in records:
-                   print(r, "\n")
+                    print(f"Credential exchange record {r["cred_ex_record"]["cred_ex_id"]}:\n{r}\n")
             except Exception as e:
                 print(f"Error getting credential exchange records: {e}")
         elif command.lower() == "vc record":
@@ -581,7 +637,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
                 result = await get_record(client, cred_ex_id)
-                print(f"Credential exchange record: {result}")
+                result_dict = result.to_dict()
+                print(f"Credential exchange record: {result_dict}")
             except Exception as e:
                 print(f"Error gettting credential exchange record: {e}")
         elif command.lower() == "delete vc record":
@@ -592,7 +649,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential exchange record deleted: {result}")
             except Exception as e:
                 print(f"Error deleting credential exchange record: {e}")
-        elif command.lower() == "offer":
+        elif command.lower() == "vc offer":
             try:
                 public_did = await get_public_did(client)
                 issuer_id = public_did["did"]
@@ -605,6 +662,7 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter schema ID:")
                 schema_id = input()
                 result = await send_offer_free(client, conn_id, attributes, cred_def_id, issuer_id, schema_id)
+                print(f"Offer sent: {result}")
             except Exception as e:
                 print(f"Error sending credential offer: {e}")
         elif command.lower() == "vc request":
@@ -625,7 +683,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Credential issued: {result}")
             except Exception as e:
                 print(f"Error issuing credential: {e}")
-        elif command.lower() == "store":
+        elif command.lower() == "store vc":
             try:
                 print("Enter credential exchange ID:")
                 cred_ex_id = input()
@@ -658,17 +716,11 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter credential ID:")
                 cred_id = input()
                 result = await get_credential(client, cred_id)
-                print(f"Stored credential: {result}")
+                result_dict = result.to_dict()
+                print(f"Stored credential {cred_id}:\n{result_dict}")
             except Exception as e:
                 print(f"Error getting stored credential: {e}")
-        elif command.lower() == "rev status":
-            try:
-                print("Enter credential ID:")
-                cred_id = input()
-                result = await get_revocation_status(client, cred_id)
-                print(f"Credential revocation status: {result}")
-            except Exception as e:
-                print(f"Error getting credential revocation status: {e}")
+
         elif command.lower() == "delete vc":
             try:
                 print("Enter credential ID:")
@@ -683,7 +735,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
                 result = await get_pres_record(client, pres_ex_id)
-                print(f"Presentation exchange record: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation exchange record: {result_dict}")
             except Exception as e:
                 print(f"Error getting presentation exchange record: {e}")
         elif command.lower() == "vp records":
@@ -710,7 +763,7 @@ async def cli(stop_event: asyncio.Event):
                 records_dict = result.to_dict()
                 records = records_dict["results"]
                 for r in records:
-                   print(r, "\n")
+                    print(f"Presentation exchange record {r["pres_ex_id"]}:\n{r}\n")
             except Exception as e:
                 print(f"Error getting presentation exchange records: {e}")
         elif command.lower() == "delete vp record":
@@ -753,7 +806,8 @@ async def cli(stop_event: asyncio.Event):
                         cred_rev_id = c.cred_info.cred_rev_id
                         cred_id = c.cred_info.referent
                 result = await send_presentation(client, pres_ex_id, cred_id, cred_rev_id)
-                print(f"Presentation sent: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation sent: {result_dict}")
             except Exception as e:
                 print(f"Error sending presentation: {e}")
         elif command.lower() == "vp proposal":
@@ -765,7 +819,8 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter attributes list:")
                 names = json.loads(input())
                 result = await send_pres_proposal(client, connection_id, names, schema_name)
-                print(f"Presentation proposal sent: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation proposal sent: {result_dict}")
             except Exception as e:
                 print(f"Error sending presentation proposal: {e}")
         elif command.lower() == "vp request":
@@ -776,7 +831,8 @@ async def cli(stop_event: asyncio.Event):
                     print("Enter presentation exchange ID:")
                     pres_ex_id = input()
                     result = await send_pres_request(client, pres_ex_id)
-                    print(f"Request sent: {result}")
+                    result_dict = result.to_dict()
+                    print(f"Request sent: {result_dict}")
                 elif type == "1":
                     print("Enter connection ID:")
                     connection_id = input()
@@ -785,7 +841,8 @@ async def cli(stop_event: asyncio.Event):
                     print("Enter attributes list:")
                     names = json.loads(input())
                     result = await send_pres_request_free(client, connection_id, names, schema_name)
-                    print(f"Request sent: {result}")
+                    result_dict = result.to_dict()
+                    print(f"Request sent: {result_dict}")
                 else:
                     print("Invalid request")
             except Exception as e:
@@ -795,26 +852,16 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter presentation exchange ID:")
                 pres_ex_id = input()
                 result = await verify_presentation(client, pres_ex_id)
-                print(f"Presentation verified: {result}")
+                result_dict = result.to_dict()
+                print(f"Presentation verified: {result_dict}")
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 
-        elif command.lower() == "rev":
-            try:
-                print("Enter rev reg ID:")
-                rev_reg_id = input()
-                result = await check_revocation_status(client, rev_reg_id)
-                print(f"Rev reg: {result}")
-            except Exception as e:
-                print(f"Error: {e}")
-
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, url, invitation, accept inv, accept didx req, connections, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, active rev reg, rev reg issued, rev reg issued details, rev regs, rev reg, revoke, vc record, vc records, delete vc record, offer, vc request, issue vc, store, vc problem, vcs, vc, rev status, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, rev reg issued details, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":
-    #asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))
-
     parser = argparse.ArgumentParser(description="Run the universal controller with a custom config file.")
     parser.add_argument("--config", type=str, required=True, help="Path to the Python config file.")
 
