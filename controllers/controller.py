@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import sys
 import argparse
 import importlib.util
@@ -8,6 +9,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
+from authentication.cert_authentication import (load_p12, sign_challenge, verify_signature, reconstruct_pem)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
@@ -33,6 +35,8 @@ invitation_url = None
 schema_name_conf = None
 schema_version_conf = None
 schema_attr_conf = None
+p12_path_conf = None
+challenge = None
 
 def load_config(config_path):
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -140,7 +144,29 @@ async def handle_basicmsg_webhook():
     event_data = await request.get_json()
     print("Received Message Webhook:", event_data, "\n")
 
-    print("Message received:", event_data["content"], "\n")
+    try:
+        data = json.loads(event_data["content"])
+
+        if data["type"] == "offer_request":
+            if data["id"]:
+                print("Received credential offer request:", event_data["content"], "sending challenge...\n")
+
+                asyncio.create_task(process_offer_request(event_data["connection_id"], data))
+
+        elif data["type"] == "nonce":
+            if data["value"]:
+                print("Received challenge nonce:", data["value"], "\n")
+
+            asyncio.create_task(process_challenge(event_data["connection_id"], data))
+
+        elif data["type"] == "signature":
+            if data["value"]:
+                print("Received challenge signature:", data["value"], "\n")
+
+            asyncio.create_task(process_signature(event_data["connection_id"], data))
+            
+    except (json.JSONDecodeError, TypeError) as e:
+        data = event_data["content"] 
 
     return jsonify({"status": "success"}), 200
 
@@ -233,6 +259,65 @@ async def process_request(event_data):
 
     except Exception as e:
         print(f"Error processing request: {e}")
+
+async def process_offer_request(conn_id, data):
+    try:
+        print("Creating challenge...\n")  
+        global challenge  
+        challenge = os.urandom(32)
+        message = {
+            "type": "nonce",
+            "value": challenge.hex(),
+            "cred_type": data["cred_type"],
+            "id": data["id"]
+        }
+        print(f"Sending challenge to connection with ID: {conn_id}...","\n")
+        await send_message(client, conn_id, json.dumps(message))
+
+    except Exception as e:
+        print(f"Error processing offer request: {e}")
+
+async def process_challenge(conn_id, data):
+    try:
+        print("Loading certificate and private key...\n")
+        certificate, private_key = load_p12(p12_path_conf)
+        print("Signing challenge...\n")
+        nonce = bytes.fromhex(data["value"])
+        signature = sign_challenge(private_key, nonce)
+ 
+        message = {
+            "type": "signature",
+            "value": signature.hex(),
+            "certificate": certificate,
+            "cred_type": data["cred_type"],
+            "id": data["id"]
+        }
+        await send_message(client, conn_id, json.dumps(message))
+
+    except Exception as e:
+        print(f"Error processing challenge: {e}")
+
+async def process_signature(conn_id, data):
+    try:
+        #print("Verifying signature...\n")
+        signature = bytes.fromhex(data["value"])
+        certificate = reconstruct_pem(data["certificate"])
+        verification, cn = verify_signature(certificate, challenge, signature)
+        if cn == data["id"]:
+            if verification == True:
+                print(f"Signature is valid for certificate {cn}! Ready to send {data["cred_type"]} credential offer!","\n")
+            
+            else:
+                print("Signature invalid!\n")
+                return False
+        else:
+            print("Certificate CN does not match with the one in the request!\n")
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"Error verifying signature: {e}")
 
 # CLI
 async def cli(stop_event: asyncio.Event):
@@ -857,6 +942,18 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 
+        elif command.lower() == "challenge":
+            try:
+                print("Enter certificate .p12 file name:")
+                p12_file = input()
+                p12_path = f"/home/andraz/tsp/CA-si/user-certificates/{p12_file}"
+                certificate, private_key = load_p12(p12_path)
+                print("Enter challenge (hex):")
+                result_dict = result.to_dict()
+                print(f"Presentation verified: {result_dict}")
+            except Exception as e:
+                print(f"Error verifying presentation: {e}")
+
         else:
             print("Unknown command. Try: dids, create did, public did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, rev reg issued details, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
@@ -875,5 +972,6 @@ if __name__ == "__main__":
     schema_name_conf = config.schema_name
     schema_version_conf = config.schema_version
     invitation_conf = config.invitation
+    p12_path_conf = config.p12_path
     
     asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))

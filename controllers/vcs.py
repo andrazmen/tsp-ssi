@@ -99,7 +99,7 @@ async def handle_conn_webhook():
     event_data = await request.get_json()
     print("Received Webhook Connection Event:", event_data, "\n")
 
-    if event_data["state"] == "invitation" and event_data["rfc23_state"] == "invitation-received":
+    if event_data["state"] == "invitation" and event_data.get("rfc23_state") == "invitation-received":
         print("Invitation received!\n")
 
         if event_data["connection_protocol"] == "didexchange/1.1":
@@ -110,7 +110,7 @@ async def handle_conn_webhook():
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
 
-    elif event_data["state"] == "request" and event_data["rfc23_state"] == "request-received":
+    elif event_data["state"] == "request" and event_data.get("rfc23_state") == "request-received":
         print("Request received!\n")
 
         if event_data["connection_protocol"] == "didexchange/1.1":
@@ -121,7 +121,7 @@ async def handle_conn_webhook():
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
 
-    print("Connection state:", event_data["state"], event_data["rfc23_state"], "\n")
+    print("Connection state:", event_data["state"], event_data.get("rfc23_state"), "\n")
 
     return jsonify({"status": "success"}), 200
 

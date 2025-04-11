@@ -4,3 +4,4 @@ invitation = {"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "ag
 schema_name = ""
 schema_version = ""
 schema_attr = []
+p12_path = "/home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12"

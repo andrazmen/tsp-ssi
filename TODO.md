@@ -38,3 +38,8 @@
 
 **07/04:**
 - lokalnega DID-a se ne da dejansko naredit.. se pa samodejno ustvari, če vzpostavljamo povezavo in pri tem ne določimo, da želimo uporabit javni did - POPRAVI USE CASE
+
+Načrt:
+- UC -> requirements -> funkcionalnosti iz seq diagramov -> kako se jih poimplementira
+- podatkovni modeli
+- vmesniki

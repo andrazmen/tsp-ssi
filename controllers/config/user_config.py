@@ -4,3 +4,4 @@ invitation = {"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "us
 schema_name = "AuthCredential"
 schema_version = "1.0.0"
 schema_attr = ["authorizer_id", "authorizer_role", "authorizee_id", "authorizee_role", "power_consumption", "power_forecast", "flexibility", "time_slot", "control_type", "description", "issue_datetime", "authorization_start", "authorization_end", "credential_type"]
+p12_path = "/home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12"
