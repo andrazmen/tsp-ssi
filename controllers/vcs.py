@@ -10,7 +10,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from vcs.proof_handler import (get_proof)
+from vcs.proof_handler import (get_proofs)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
@@ -171,12 +171,16 @@ async def handle_acs_api():
     try:
         event_data = await request.get_json()
         print("Received acs api request:", event_data)
-        did = event_data["did"]
+        if event_data.get("id"):    
+            id = event_data["id"]
+            topics = event_data.get("topics")
 
-        proofs = await check_proofs(did)
+            proofs = await check_proofs(id, topics)
 
-        print(f"Valid proofs: {proofs}", "\n")
-        return jsonify(proofs), 200
+            print(f"Valid proofs: {proofs}", "\n")
+            return jsonify(proofs), 200
+        else:
+            return jsonify({"error": "Missing 'id' in request data"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -214,22 +218,22 @@ async def process_request(event_data):
         print(f"Error processing request: {e}") 
 
 # API functions
-async def check_proofs(did):
+async def check_proofs(id, topics):
     try:
-        conns = await get_connections(client, state="active", their_did=did)
-        connection_id = conns.to_dict()["results"][0]["connection_id"]
-        result = await get_pres_records(client, connection_id, role="verifier", state="done")
+        #conns = await get_connections(client, state="active", their_did=did)
+        #connection_id = conns.to_dict()["results"][0]["connection_id"]
+        result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
         records_dict = result.to_dict()
         records = records_dict["results"]
         
         my_did = await get_public_did(client)
 
-        result = await get_proof(my_did["did"], did, records)
+        result = await get_proofs(records, id, my_did["did"], topics)
 
         return result
 
     except Exception as e:
-        print(f"Error getting proof: {e}")      
+        print(f"Error checking proofs: {e}")      
 
 # CLI
 async def cli(stop_event: asyncio.Event):

@@ -2,3 +2,4 @@ acapy_agent==1.1.1
 Quart==0.20.0
 aiocache==0.12.3
 indy-vdr==0.4.2
+cryptography==41.0.7
