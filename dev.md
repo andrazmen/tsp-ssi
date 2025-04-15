@@ -32,6 +32,12 @@ aca-py start --arg-file args/vcs.yaml
 
 ```
 cd aca-py
+source .venv_acapy/bin/activate
+aca-py start --arg-file args/ta.yaml
+```
+
+```
+cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
 python3 controller.py --config config/user_config.py 
@@ -49,4 +55,11 @@ cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
 python3 vcs.py --config config/vcs_config.py 
+```
+
+```
+cd aca-py
+source .venv_cloudcontroller/bin/activate
+cd controllers
+python3 controller.py --config config/ta_config.py 
 ```
