@@ -2988,7 +2988,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "1"
+                "cred_rev_id": "2"
               },
               "unrevealed_attrs": {},
               "predicates": {}
@@ -4510,7 +4510,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "2"
+                "cred_rev_id": "3"
               },
               "unrevealed_attrs": {},
               "predicates": {}
@@ -6032,7 +6032,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "2"
+                "cred_rev_id": "4"
               },
               "unrevealed_attrs": {},
               "predicates": {}
@@ -7554,7 +7554,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "2"
+                "cred_rev_id": "5"
               },
               "unrevealed_attrs": {},
               "predicates": {}
@@ -9076,7 +9076,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "2"
+                "cred_rev_id": "6"
               },
               "unrevealed_attrs": {},
               "predicates": {}
@@ -10598,7 +10598,7 @@
                 }
               },
               "self_attested_attrs": {
-                "cred_rev_id": "2"
+                "cred_rev_id": "7"
               },
               "unrevealed_attrs": {},
               "predicates": {}

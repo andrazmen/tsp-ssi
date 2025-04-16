@@ -222,13 +222,15 @@ async def check_proofs(id, topics):
     try:
         #conns = await get_connections(client, state="active", their_did=did)
         #connection_id = conns.to_dict()["results"][0]["connection_id"]
-        #result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
-        with open("utils/test_loop1_mixed.json") as f:
-            result = json.load(f)
+        result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
 
-        #records_dict = result.to_dict()
-        records = result["results"]
-        
+        #TEST
+        #with open("utils/test_loop2.json") as f:
+        #    result = json.load(f)
+
+        records_dict = result.to_dict()
+        records = records_dict["results"]
+ 
         my_did = await get_public_did(client)
 
         result = await get_proofs(records, id, my_did["did"], topics)
