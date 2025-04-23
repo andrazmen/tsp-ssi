@@ -12,9 +12,9 @@
 
 ## Certificate Credential
 
-**Cert schema, proof request or proof proposal (names) attributes:** ["operator_id", "operator_did", "operator_name", "operator_type", "operator_contact", "subject_did", "subject_name", "subject_role", "subject_device_id", "subject_device_type", "description", "issue_datetime", "credential_type"]
+**Cert schema, proof request or proof proposal (names) attributes:** ["operator_did", "operator_name", "operator_type", "operator_contact", "subject_did", "subject_name", "subject_role", "subject_device_id", "subject_device_type", "description", "issue_datetime", "credential_type"]
 
-**Cert offer attributes:** {"operator_id": "28XCELJE03-----V", "operator_did": "did:sov:KNQMNG77kewjDqW15syTXT", "operator_name": "ECE d.o.o.", "operator_type": "provider", "operator_contact": "info@ece.si", "subject_did": "did:sov:3UGHodegK6FFatbMgCJQnU", "subject_name": "agg_e5D1Gyvz9Y", "subject_role": "aggregator", "subject_device_id": "", "subject_device_type": "", "description": "", "issue_datetime": "2025-03-03T13:00:00Z", "credential_type": "certificate"}
+**Cert offer attributes:** {"operator_did": "did:sov:KNQMNG77kewjDqW15syTXT", "operator_name": "ECE d.o.o.", "operator_type": "provider", "operator_contact": "info@ece.si", "subject_did": "did:sov:3UGHodegK6FFatbMgCJQnU", "subject_name": "agg_e5D1Gyvz9Y", "subject_role": "aggregator", "subject_device_id": "", "subject_device_type": "", "description": "", "issue_datetime": "2025-03-03T13:00:00Z", "credential_type": "certificate"}
 
 ## Technical Credential
 

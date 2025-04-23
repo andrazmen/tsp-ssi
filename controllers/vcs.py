@@ -529,12 +529,12 @@ if __name__ == "__main__":
     
     config = load_config(args.config)
     
-    base_url = config.base_url
-    port = config.port
-    schema_attr_conf = config.schema_attr
-    schema_name_conf = config.schema_name
-    schema_version_conf = config.schema_version
-    invitation = config.invitation
-    genesis = config.genesis
+    base_url = config.BASE_URL
+    port = config.PORT
+    schema_attr_conf = config.SCHEMA_ATTR
+    schema_name_conf = config.SCHEMA_NAME
+    schema_version_conf = config.SCHEMA_VERSION
+    invitation = config.INVITATION
+    genesis = config.GENESIS
     
     asyncio.run(app.run_task(host='0.0.0.0', port=port, debug=True))

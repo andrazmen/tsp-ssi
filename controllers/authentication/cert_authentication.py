@@ -26,7 +26,7 @@ def sign_challenge(private_key, challenge):
     )
 
 def verify_signature(certificate, challenge, signature):
-    print("\n🧪 Verifying signature...")
+    print("\n🔹 Verifying signature...")
     
     if isinstance(challenge, bytes):
         print("🔹 Challenge (bytes):", challenge.hex())
