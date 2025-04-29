@@ -180,7 +180,7 @@ async def handle_acs_api():
             print(f"Valid proofs: {proofs}", "\n")
             return jsonify(proofs), 200
         else:
-            return jsonify({"error": "Missing 'id' in request data"}), 400
+            return jsonify({"error": "Bad Request"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -222,15 +222,16 @@ async def check_proofs(id, topics):
     try:
         #conns = await get_connections(client, state="active", their_did=did)
         #connection_id = conns.to_dict()["results"][0]["connection_id"]
-        result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
+        #result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
 
         #TEST
-        #with open("utils/test_loop2.json") as f:
-        #    result = json.load(f)
+        with open("utils/test1_doubled.json") as f:
+            result = json.load(f)
+        records = result["results"] 
 
-        records_dict = result.to_dict()
-        records = records_dict["results"]
- 
+        #records_dict = result.to_dict()
+        #records = records_dict["results"]
+        
         my_did = await get_public_did(client)
 
         result = await get_proofs(records, id, my_did["did"], topics)
