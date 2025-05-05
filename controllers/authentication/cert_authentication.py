@@ -26,15 +26,15 @@ def sign_challenge(private_key, challenge):
     )
 
 def verify_signature(certificate, challenge, signature):
-    print("\n🔹 Verifying signature...")
+    print("\nVerifying signature...")
     
     if isinstance(challenge, bytes):
-        print("🔹 Challenge (bytes):", challenge.hex())
+        print("Challenge (bytes):", challenge.hex())
     else:
-        print("⚠️ Challenge is not bytes! Type:", type(challenge))
+        print("Challenge is not bytes! Type:", type(challenge))
         
-    print("🔹 Signature:", signature.hex())
-    print("🔹 Using certificate with CN:", extract_cn(certificate))
+    print("Signature:", signature.hex())
+    print("Using certificate with CN:", extract_cn(certificate))
 
     public_key = certificate.public_key()
     
@@ -45,12 +45,12 @@ def verify_signature(certificate, challenge, signature):
             padding.PKCS1v15(),
             hashes.SHA256()
         )
-        print("✅ Valid signature!\n")
+        print("Valid signature!\n")
         valid = True
         return valid, extract_cn(certificate)
     except Exception as e:
-        print("❌ Signature verification failed!")
-        print("🧵 Exception:", repr(e))
+        print("Signature verification failed!")
+        print("Exception:", repr(e))
         valid = False
         return valid, None
 

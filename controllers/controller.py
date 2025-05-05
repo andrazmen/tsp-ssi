@@ -12,6 +12,7 @@ from aries_cloudcontroller import (
 from authentication.cert_authentication import (load_p12, sign_challenge, verify_signature, reconstruct_pem)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.ledger import (register_nym)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
 from services.connections import (get_connections, get_connection, delete_connection)
 from services.trust_ping import send_ping
@@ -179,12 +180,18 @@ async def handle_credential_webhook():
         cred_ex_id = event_data['cred_ex_id']
         offer = event_data['cred_offer']
         print("Received VC offer:", offer['credential_preview'], "with cred_ex_id:", cred_ex_id, "\n")
+    elif event_data["state"] == "request-sent":
+        cred_ex_id = event_data['cred_ex_id']
+        print("Sent VC request with cred_ex_id:", cred_ex_id, "\n")
+    elif event_data["state"] == "request-received":
+        cred_ex_id = event_data['cred_ex_id']
+        print("Received VC request with cred_ex_id:", cred_ex_id, "\n")
     elif event_data["state"] == "credential-received":
         cred_ex_id = event_data['cred_ex_id']
-        print("Received VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
+        print("Received VC with cred_ex_id:", cred_ex_id, "\n")
     elif event_data["state"] == "credential-issued":
         cred_ex_id = event_data['cred_ex_id']
-        print("Issued VC:", event_data, "with cred_ex_id:", cred_ex_id, "\n")
+        print("Issued VC with cred_ex_id:", cred_ex_id, "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -342,18 +349,22 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error getting DIDs: {e}")
         elif command.startswith("create did"):
-            print("local or public?")
             try:
-                type = input()
-                if type == "local":
-                    method = "peer"
-                    result = await create_did(client, method)
-                elif type == "public":
-                    method = "sov"
-                    result = await create_did(client, method)
+                method = "sov"
+                result = await create_did(client, method)
                 print(result)
             except Exception as e:
                 print(f"Error creating DID: {e}")
+        elif command.startswith("register did"):
+            try:
+                print("Enter DID:")
+                did = input()
+                print("Enter verkey:")
+                verkey = input()
+                result = await register_nym(client, did, verkey)
+                print(result)
+            except Exception as e:
+                print(f"Error registring DID: {e}")
         elif command.startswith("assign did"):
             print("Enter DID:")
             try:
@@ -629,14 +640,6 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Number of issued credentials : {result}")
             except Exception as e:
                 print(f"Error getting number of issued credentials: {e}")
-        elif command.lower() == "rev reg issued details":
-            try:
-                print("Enter revocation registry ID:")
-                rev_reg_id = input()
-                result = await get_rev_reg_issued_details(client, rev_reg_id)
-                print(f"Details of issued credentials : {result}")
-            except Exception as e:
-                print(f"Error getting details of issued credentials: {e}")
         elif command.lower() == "rev regs":
             try:
                 print("Enter credential definition ID:")
@@ -942,20 +945,8 @@ async def cli(stop_event: asyncio.Event):
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 
-        elif command.lower() == "challenge":
-            try:
-                print("Enter certificate .p12 file name:")
-                p12_file = input()
-                p12_path = f"/home/andraz/tsp/CA-si/user-certificates/{p12_file}"
-                certificate, private_key = load_p12(p12_path)
-                print("Enter challenge (hex):")
-                result_dict = result.to_dict()
-                print(f"Presentation verified: {result_dict}")
-            except Exception as e:
-                print(f"Error verifying presentation: {e}")
-
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, rev reg issued details, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, register did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":
