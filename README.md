@@ -226,3 +226,12 @@ VCS controller provides following CLI commands:
 - verify                    verifies received presentation
 - proofs                    lists all stored verified and valid presentations
 ```
+
+## Testing MQTT
+```
+(.venv_tsp) andraz@andraz:~/tsp$ python3 acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ssl
+
+(.venv_tsp) andraz@andraz:~/pcs$ python3 bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/etc/mosquitto/ca_certificates/user-certificates/test.p12 -t /test/test -d -r
+
+(.venv_tsp) andraz@andraz:~/pcs$ python3 bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/etc/mosquitto/ca_certificates/user-certificates/test.p12 -t /test/test -m '{"key": "value"}'
+```
