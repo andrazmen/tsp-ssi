@@ -229,9 +229,15 @@ VCS controller provides following CLI commands:
 
 ## Testing MQTT
 ```
-(.venv_tsp) andraz@andraz:~/tsp$ python3 acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ssl
+(.venv_tsp) andraz@andraz:~/tsp$ python acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ssl
 
-(.venv_tsp) andraz@andraz:~/pcs$ python3 bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/etc/mosquitto/ca_certificates/user-certificates/test.p12 -t /test/test -d -r
+LISTENER:
+(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_listener.p12 -t /cem/test -d -r
 
-(.venv_tsp) andraz@andraz:~/pcs$ python3 bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/etc/mosquitto/ca_certificates/user-certificates/test.p12 -t /test/test -m '{"key": "value"}'
+(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si.p12 -d -r
+
+PUBLISHER:
+(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_publisher.p12 -t /cem/test -m '{"key": "value"}'
+
+(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si -m '{"key": "value"}'
 ```

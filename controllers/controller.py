@@ -124,7 +124,7 @@ async def handle_conn_webhook():
         if event_data["connection_protocol"] == "didexchange/1.1":
             print("Accepting request...\n")
 
-            asyncio.create_task(process_request(event_data))
+            asyncio.create_task(process_conn_request(event_data))
 
         else:
             print("Unknown connection protocol:", event_data["connection_protocol"], "\n")
@@ -151,23 +151,21 @@ async def handle_basicmsg_webhook():
         if data["type"] == "offer_request":
             if data["id"]:
                 print("Received credential offer request:", event_data["content"], "sending challenge...\n")
-
                 asyncio.create_task(process_offer_request(event_data["connection_id"], data))
 
         elif data["type"] == "nonce":
             if data["value"]:
                 print("Received challenge nonce:", data["value"], "\n")
-
-            asyncio.create_task(process_challenge(event_data["connection_id"], data))
+                asyncio.create_task(process_challenge(event_data["connection_id"], data))
 
         elif data["type"] == "signature":
             if data["value"]:
                 print("Received challenge signature:", data["value"], "\n")
-
-            asyncio.create_task(process_signature(event_data["connection_id"], data))
-            
-    except (json.JSONDecodeError, TypeError) as e:
-        data = event_data["content"] 
+                asyncio.create_task(process_signature(event_data["connection_id"], data))
+        else:
+            print("Received basic message:", data, "\n")   
+    except (json.JSONDecodeError, TypeError) as e: 
+        print("Received basic message:", data, "\n")
 
     return jsonify({"status": "success"}), 200
 
@@ -260,12 +258,12 @@ async def process_invitation(event_data):
     except Exception as e:
         print(f"Error processing invitation: {e}")
 
-async def process_request(event_data):
+async def process_conn_request(event_data):
     try:
         await accept_request(client, event_data["connection_id"])
 
     except Exception as e:
-        print(f"Error processing request: {e}")
+        print(f"Error processing connection request: {e}")
 
 async def process_offer_request(conn_id, data):
     try:

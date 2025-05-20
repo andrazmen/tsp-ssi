@@ -10,11 +10,12 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
+from vcs.x509_verification import (create_challenge, verify_sign)
 from vcs.proof_handler import (get_proofs)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
-from services.connections import (get_connections, get_connection)
+from services.connections import (get_connections, get_connection, get_metadata, set_metadata, delete_connection)
 from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request)
 from services.basic_message import send_message
@@ -136,8 +137,17 @@ async def handle_reuse_connection_webhook():
 async def handle_basicmsg_webhook():
     event_data = await request.get_json()
     print("Received Message Webhook:", event_data, "\n")
+    try:
+        data = json.loads(event_data["content"])
 
-    print("Message received:", event_data["content"], "\n")
+        if data["type"] == "signature":
+            if data["value"]:
+                print("Received challenge signature:", data["value"], "\n")
+                asyncio.create_task(verify_sign(client, event_data["connection_id"], data))
+        else:
+            print("Received basic message:", data, "\n")         
+    except (json.JSONDecodeError, TypeError) as e: 
+        print("Received basic message:", data, "\n")  
 
     return jsonify({"status": "success"}), 200
 
@@ -163,6 +173,12 @@ async def handle_proof_webhook():
         pres = event_data['by_format']
         print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
 
+    elif event_data["state"] == "done":
+        if event_data["verified"]:
+            print("Presentation verified:", event_data, "sending challenge for certificate...\n")
+            #Todo: PREVERI, ČE JE CN ŽE V METADATAH
+            asyncio.create_task(create_challenge(client, event_data))
+
     return jsonify({"status": "success"}), 200
 
 # Access-control API
@@ -175,7 +191,7 @@ async def handle_acs_api():
             id = event_data["id"]
             topics = event_data.get("topics")
 
-            proofs = await check_proofs(id, topics)
+            proofs = await check_proofs(client, id, topics)
 
             print(f"Valid proofs: {proofs}", "\n")
             return jsonify(proofs), 200
@@ -218,14 +234,14 @@ async def process_request(event_data):
         print(f"Error processing request: {e}") 
 
 # API functions
-async def check_proofs(id, topics):
+async def check_proofs(client, id, topics):
     try:
         #conns = await get_connections(client, state="active", their_did=did)
         #connection_id = conns.to_dict()["results"][0]["connection_id"]
         #result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
 
         #TEST
-        with open("utils/test1_doubled.json") as f:
+        with open("utils/test1_doubled_upd.json") as f:
             result = json.load(f)
         records = result["results"] 
 
@@ -234,7 +250,7 @@ async def check_proofs(id, topics):
         
         my_did = await get_public_did(client)
 
-        result = await get_proofs(records, id, my_did["did"], topics)
+        result = await get_proofs(client, records, id, my_did["did"], topics)
 
         return result
 
@@ -380,6 +396,24 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Connection record for connection {connection_id}: {result}")
             except Exception as e:
                 print(f"Error getting connection: {e}")   
+        elif command.lower() == "conn metadata":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                result = await get_metadata(client, conn_id)
+                print(f"Metadata for connection {conn_id}: {result.to_dict()}")
+            except Exception as e:
+                print(f"Error getting metadata: {e}")
+        elif command.lower() == "set conn metadata":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                print("Enter certificate CN:")
+                certificate_cn = input()
+                result = await set_metadata(client, conn_id, certificate_cn)
+                print(f"Metadata for connection {conn_id} set: {result}")
+            except Exception as e:
+                print(f"Error setting metadata: {e}")
         elif command.lower() == "delete conn":
             try:
                 print("Enter connection ID:")
@@ -499,6 +533,14 @@ async def cli(stop_event: asyncio.Event):
                 result = await verify_presentation(client, pres_ex_id)
                 result_dict = result.to_dict()
                 print(f"Presentation verified: {result_dict}")
+                if result_dict["verified"] == True:
+                    print("Verifying certificate...")
+                    certificate_cn = verify_cn(client, result_dict)
+                    if certificate_cn:
+                        print("Certificate invalid, setting connection metadata...")
+                        conn_id = result_dict.get("connection_id")
+                        result = await set_metadata(client, conn_id, certificate_cn)
+                        print(f"Metadata for connection {conn_id} set: {result}")
             except Exception as e:
                 print(f"Error verifying presentation: {e}")
 

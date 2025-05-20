@@ -4,6 +4,7 @@ import json
 from aiocache import cached
 
 from .check_revocation import get_rev_list
+from services.connections import get_metadata
 
 rev_lists = {}
 dead_proofs = []
@@ -12,7 +13,7 @@ revoked_proofs = []
 topic_mismatch_proofs = []
 
 #@cached(ttl=60)
-async def get_proofs(records, requester_cn, submitter_did, topics):
+async def get_proofs(client, records, requester_cn, submitter_did, topics):
     result = {} 
     try:
         for r in records:
@@ -25,7 +26,6 @@ async def get_proofs(records, requester_cn, submitter_did, topics):
                 pres_ex_id = r["pres_ex_id"]
                 cred_rev_id = r["by_format"]["pres"]["anoncreds"]["requested_proof"]["self_attested_attrs"]["cred_rev_id"]
                 rev_reg_id = r["by_format"]["pres"]["anoncreds"]["identifiers"][0]["rev_reg_id"]
-
                 # Check revocation
                 if rev_reg_id not in rev_lists:
                     rev_lists.update(await ledger_handler(submitter_did, rev_reg_id, rev_lists))
@@ -45,11 +45,23 @@ async def get_proofs(records, requester_cn, submitter_did, topics):
                     # Check credential type
                     if values.get("credential_type").get("raw") == "technical":
                         print("Credential type is TechCredential!")
+                        # Check certificate CN
+                        metadata = await get_metadata(client, r["connection_id"])
+                        if subject not in metadata.get(results):
+                            print("Unknown certificate CN, skipping...")
+                            continue
                         result_item[pres_ex_id] = {"issuer_cn": values.get("issuer_cn").get("raw"), "issuer_did": values.get("issuer_did").get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                         result[len(result) + 1] = result_item
-
                     elif (values.get("credential_type").get("raw") == "authorization"):
-                        if (values.get("topics").get("raw") in topics):
+                        # Check certificate CN
+                        metadata = await get_metadata(client, r["connection_id"])
+                        if authorizee not in metadata.get(results):
+                            print("Unknown certificate CN, skipping...")
+                            continue
+                        # Check topic
+                        print("My topic:", topics)
+                        print("Topics in proof:", values.get("topics").get("raw"))
+                        if topics in json.loads(values.get("topics").get("raw")):
                             print("Credential type is not TechCredential, checking chained proofs...")
                             result_item[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                             # Check chain proofs based on root auth proof
@@ -150,7 +162,7 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                             continue
                             
                         elif (values.get("credential_type").get("raw") == "authorization"):
-                            if (values.get("topics").get("raw") in topics):
+                            if topics in json.loads(values.get("topics").get("raw")):
                                 print("Credential type is not TechCredential, checking proofs...")
                                 prev_proofs[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                                 issuer = values.get("authorizer_cn").get("raw")

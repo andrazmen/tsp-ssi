@@ -31,7 +31,6 @@ async def delete_connection(client, conn_id):
 
     return result
 
-"""
 async def get_metadata(client, conn_id):
     result = await client.connection.get_metadata(
         conn_id = conn_id
@@ -44,11 +43,9 @@ async def set_metadata(client, conn_id, certificate_cn):
         conn_id = conn_id,
         body = ConnectionMetadataSetRequest(
             metadata = {
-                "cn": certificate_cn,
-                "valid": True
+                certificate_cn: True
             }
         )
     )
 
     return result
-"""
