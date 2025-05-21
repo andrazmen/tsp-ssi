@@ -44,12 +44,16 @@ def json_to_offer_attr(attr_json):
         attr_dict = json.loads(attr_json)
         
         attr_list = [
-            V20CredAttrSpec(name=key, value=value) 
+            V20CredAttrSpec(
+                name=key, 
+                value=json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+            )
             for key, value in attr_dict.items()
         ]
         return attr_list
     except Exception as e:
         print(f"Error converting json to list: {e}")
+        return []
 
 def random_nonce():
     first_digit = str(random.randint(1, 9))  # First digit must be 1-9

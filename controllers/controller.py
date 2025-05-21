@@ -163,9 +163,9 @@ async def handle_basicmsg_webhook():
                 print("Received challenge signature:", data["value"], "\n")
                 asyncio.create_task(process_signature(event_data["connection_id"], data))
         else:
-            print("Received basic message:", data, "\n")   
+            print("Received basic message:", event_data["content"], "\n")   
     except (json.JSONDecodeError, TypeError) as e: 
-        print("Received basic message:", data, "\n")
+        print("Received basic message:", event_data["content"], "\n")
 
     return jsonify({"status": "success"}), 200
 

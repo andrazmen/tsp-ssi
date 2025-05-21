@@ -177,6 +177,14 @@ async def handle_proof_webhook():
         if event_data["verified"]:
             print("Presentation verified:", event_data, "sending challenge for certificate...\n")
             #Todo: PREVERI, ČE JE CN ŽE V METADATAH
+            metadata = await get_metadata(client, event_data["connection_id"])
+            metadata_dict = metadata.to_dict()
+            data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
+            if data.get("authorizee_cn", {}).get("raw") in metadata_dict["results"] or data.get("subject_cn", {}).get("raw") in metadata_dict["results"]:
+                print("Metadata", metadata_dict["results"], "\n")
+                print("Certificate with this CN already in metadata, skipping challenge...\n")
+                return jsonify({"status": "success"}), 200
+
             asyncio.create_task(create_challenge(client, event_data))
 
     return jsonify({"status": "success"}), 200
@@ -238,15 +246,15 @@ async def check_proofs(client, id, topics):
     try:
         #conns = await get_connections(client, state="active", their_did=did)
         #connection_id = conns.to_dict()["results"][0]["connection_id"]
-        #result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
+        result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
 
         #TEST
-        with open("utils/test1_doubled_upd.json") as f:
-            result = json.load(f)
-        records = result["results"] 
+        #with open("utils/test1_doubled_upd.json") as f:
+        #    result = json.load(f)
+        #records = result["results"] 
 
-        #records_dict = result.to_dict()
-        #records = records_dict["results"]
+        records_dict = result.to_dict()
+        records = records_dict["results"]
         
         my_did = await get_public_did(client)
 

@@ -47,21 +47,31 @@ async def get_proofs(client, records, requester_cn, submitter_did, topics):
                         print("Credential type is TechCredential!")
                         # Check certificate CN
                         metadata = await get_metadata(client, r["connection_id"])
-                        if subject not in metadata.get(results):
+                        metadata_dict = metadata.to_dict()
+                        if not metadata_dict.get("results").get(subject.get("raw"), True):
                             print("Unknown certificate CN, skipping...")
                             continue
                         result_item[pres_ex_id] = {"issuer_cn": values.get("issuer_cn").get("raw"), "issuer_did": values.get("issuer_did").get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
-                        result[len(result) + 1] = result_item
+                        partial_result = {}
+                        partial_result[len(partial_result) + 1] = result_item
+                        result[len(result) + 1] = partial_result
                     elif (values.get("credential_type").get("raw") == "authorization"):
                         # Check certificate CN
                         metadata = await get_metadata(client, r["connection_id"])
-                        if authorizee not in metadata.get(results):
+                        print("Metadata:", metadata)
+                        metadata_dict = metadata.to_dict()
+                        print("Metadata dict:", metadata_dict)
+                        print("Metadata results:", metadata_dict.get("results"))
+                        if not metadata_dict.get("results").get(authorizee.get("raw"), True):
                             print("Unknown certificate CN, skipping...")
                             continue
                         # Check topic
                         print("My topic:", topics)
                         print("Topics in proof:", values.get("topics").get("raw"))
-                        if topics in json.loads(values.get("topics").get("raw")):
+                        #if topics in json.loads(values.get("topics").get("raw")):
+                        proof_topics = json.loads(values.get("topics").get("raw")) if values.get("topics").get("raw").strip().startswith("[") else []
+                        if isinstance(proof_topics, list) and topics in proof_topics:
+                        #if isinstance(values.get("topics").get("raw"), list) and topics in json.loads(values["topics"]["raw"]):
                             print("Credential type is not TechCredential, checking chained proofs...")
                             result_item[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                             # Check chain proofs based on root auth proof
@@ -129,8 +139,8 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                     if rev_reg_id not in rev_lists:
                         rev_lists.update(await ledger_handler(submitter_did, rev_reg_id, rev_lists))
     
-                    #if cred_rev_id in rev_lists[rev_reg_id]:
-                    if cred_rev_id in []:
+                    if cred_rev_id in rev_lists[rev_reg_id]:
+                    #if cred_rev_id in []:
                         print(f"Credential with cred_rev_id {cred_rev_id} is revoked!", "\n")
 
                         revoked_proofs.append(r["pres_ex_id"])
@@ -162,7 +172,8 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                             continue
                             
                         elif (values.get("credential_type").get("raw") == "authorization"):
-                            if topics in json.loads(values.get("topics").get("raw")):
+                            proof_topics = json.loads(values.get("topics").get("raw")) if values.get("topics").get("raw").strip().startswith("[") else []
+                            if isinstance(proof_topics, list) and topics in proof_topics:
                                 print("Credential type is not TechCredential, checking proofs...")
                                 prev_proofs[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                                 issuer = values.get("authorizer_cn").get("raw")

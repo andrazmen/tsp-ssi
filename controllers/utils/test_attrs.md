@@ -10,6 +10,9 @@
 
 {"authorizer_did": "did:sov:VWJgMNS75SWMpkp2gT74Zq", "authorizer_cn": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229", "authorizer_role": "user", "authorizee_did": "did:sov:KNQMNG77kewjDqW15syTXT", "authorizee_cn": "fcc931cf-8ed2-4a18-95b6-daca83a31894", "authorizee_role": "aggregator", "power_consumption": "10462", "power_forecast": "12697", "flexibility": "500", "time_slot": '[\"monday\", \"friday\", \"sunday\"]', "topics": '[\"/cem/cem1/devices\", \"/cem/cem1/control\"]', "actions": '[\"read\", \"subscribe\"]', "description": "test credential", "issue_datetime": "2024-12-20T14:32:59+00:00", "authorization_start": "2025-01-01T14:32:59+00:00", "authorization_end": "2025-12-31T14:32:59+00:00", "credential_type": "authorization"}
 
+**PREVERJENO**
+{"authorizer_did": "did:sov:VWJgMNS75SWMpkp2gT74Zq", "authorizer_cn": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229", "authorizer_role": "user", "authorizee_did": "did:sov:KNQMNG77kewjDqW15syTXT", "authorizee_cn": "fcc931cf-8ed2-4a18-95b6-daca83a31894", "authorizee_role": "aggregator", "power_consumption": "10462", "power_forecast": "12697", "flexibility": "500", "time_slot": ["monday", "friday", "sunday"], "topics": ["/cem/cem1/devices", "/cem/cem1/control"], "actions": ["read", "subscribe"], "description": "test credential", "issue_datetime": "2024-12-20T14:32:59+00:00", "authorization_start": "2025-01-01T14:32:59+00:00", "authorization_end": "2025-12-31T14:32:59+00:00", "credential_type": "authorization"}
+
 {"authorizer_did": "did:sov:VWJgMNS75SWMpkp2gT74Zq", "authorizer_cn": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229", "authorizer_role": "user", "authorizee_did": "did:sov:KNQMNG77kewjDqW15syTXT", "authorizee_cn": "fcc931cf-8ed2-4a18-95b6-daca83a31894", "authorizee_role": "aggregator", "power_consumption": "10462", "power_forecast": "12697", "flexibility": "500", "time_slot": "monday", "topics": "topic2", "actions": "read", "description": "test credential", "issue_datetime": "2025-03-24T13:00:00Z", "authorization_start": "2025-03-25T12:00:00Z", "authorization_end": "2025-04-25T12:00:00Z", "credential_type": "authorization"}
 
 ## Certificate Credential
@@ -25,7 +28,13 @@
 **Tech schema, proof request or proof proposal (names) attributes:** 
 ["issuer_did", "issuer_cn", "issuer_role", "subject_did", "subject_cn", "subject_role", "subject_device_id", "subject_device_type", "hems_id", "description", "issue_datetime", "credential_type"]
 
+**CEM_ID**
+["issuer_did", "issuer_cn", "issuer_role", "subject_did", "subject_cn", "subject_role", "subject_device_id", "subject_device_type", "cem_id", "description", "issue_datetime", "credential_type"]
+
 **Tech offer attributes:** {"issuer_did": "did:sov:E56xjJ1frUaQUr47sN14nn", "issuer_cn": "47658be9-6964-4565-a3a3-4abbe9b60da1", "issuer_role": "technical aggregator", "subject_did": "did:sov:VWJgMNS75SWMpkp2gT74Zq", "subject_cn": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229", "subject_role": "user", "subject_device_id": "383456780018747622", "subject_device_type": "ZCXI120CPU1L1D1", "hems_id": "1.2.826.0.1.3680043.2.1125.3.2.105", "description": "", "issue_datetime": "2025-03-03T13:00:00Z", "credential_type": "technical"}
+
+**CEM_ID**
+{"issuer_did": "did:sov:E56xjJ1frUaQUr47sN14nn", "issuer_cn": "47658be9-6964-4565-a3a3-4abbe9b60da1", "issuer_role": "technical aggregator", "subject_did": "did:sov:VWJgMNS75SWMpkp2gT74Zq", "subject_cn": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229", "subject_role": "user", "subject_device_id": "383456780018747622", "subject_device_type": "ZCXI120CPU1L1D1", "cem_id": "cem1", "description": "", "issue_datetime": "2025-03-03T13:00:00Z", "credential_type": "technical"}
 
 **Time format (UTC, ISO8601):**
 print(datetime.now(timezone.utc).replace(microsecond=0).isoformat())
