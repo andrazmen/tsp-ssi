@@ -176,7 +176,7 @@ async def handle_proof_webhook():
     elif event_data["state"] == "done":
         if event_data["verified"]:
             print("Presentation verified:", event_data, "sending challenge for certificate...\n")
-            #Todo: PREVERI, ČE JE CN ŽE V METADATAH
+
             metadata = await get_metadata(client, event_data["connection_id"])
             metadata_dict = metadata.to_dict()
             data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
@@ -197,9 +197,9 @@ async def handle_acs_api():
         print("Received acs api request:", event_data)
         if event_data.get("id"):    
             id = event_data["id"]
-            topics = event_data.get("topics")
+            topic = event_data.get("topic")
 
-            proofs = await check_proofs(client, id, topics)
+            proofs = await check_proofs(client, id, topic)
 
             print(f"Valid proofs: {proofs}", "\n")
             return jsonify(proofs), 200
@@ -401,7 +401,7 @@ async def cli(stop_event: asyncio.Event):
                 print("Enter connection ID:")
                 conn_id = input()
                 result = await get_connection(client, conn_id)
-                print(f"Connection record for connection {connection_id}: {result}")
+                print(f"Connection record for connection {conn_id}: {result.to_dict()}")
             except Exception as e:
                 print(f"Error getting connection: {e}")   
         elif command.lower() == "conn metadata":

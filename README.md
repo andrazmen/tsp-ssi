@@ -227,17 +227,46 @@ VCS controller provides following CLI commands:
 - proofs                    lists all stored verified and valid presentations
 ```
 
-## Testing MQTT
+## ACS and MQTT access control
+Access control service (ACS) deployment is accessible at the following location: https://git.e5.ijs.si/dusan/tsp.git. Repository includes instructions to generate and deploy Certificate Authority and to make server certificate for the ACS server and user certificate for clients.
+
+In ACS code, authorization engine for MQTT protocol is added, supporting SSI credentials. Based on SSI credential support, 2 access policies are defined.
+
+Repository includes instructions for installing, patching, configuring and running Mosquitto MQTT broker.
+
+### Starting ACS
+```bash
+source .venv_tsp/bin/activate
+cd tsp
+export PYTHONPATH=$(pwd)
+
+python acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ssl
 ```
-(.venv_tsp) andraz@andraz:~/tsp$ python acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ssl
 
+### Starting MQTT broker
+sudo systemctl start mosquitto
+
+#logs
+sudo journalctl -u mosquitto.service -n 15
+sudo tail -f /var/log/mosquitto/mosquitto.log
+
+#### Testing MQTT
+```
 LISTENER:
-(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_listener.p12 -t /cem/test -d -r
+(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_listener.p12 -t /cem/test -d -r
 
-(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si.p12 -d -r
+(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si.p12 -d -r
+
+python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/cem1 -d -r
+
+python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/cem1/devices -d -r
 
 PUBLISHER:
-(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_publisher.p12 -t /cem/test -m '{"key": "value"}'
+(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_publisher.p12 -t /cem/test -m '{"key": "value"}'
 
-(.venv_tsp) andraz@andraz:~/pcs$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si -m '{"key": "value"}'
+(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si -m '{"key": "value"}'
+
+python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/cem1 -m '{"key": "value"}'
+
+python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/cem1/control -m '{"key": "value"}'
 ```

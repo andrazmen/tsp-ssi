@@ -4,7 +4,7 @@ import json
 from aiocache import cached
 
 from .check_revocation import get_rev_list
-from services.connections import get_metadata
+from services.connections import get_metadata, get_connection
 
 rev_lists = {}
 dead_proofs = []
@@ -13,14 +13,14 @@ revoked_proofs = []
 topic_mismatch_proofs = []
 
 #@cached(ttl=60)
-async def get_proofs(client, records, requester_cn, submitter_did, topics):
+async def get_proofs(client, records, requester_cn, submitter_did, topic):
     result = {} 
     try:
         for r in records:
             print("Get proof:", r["pres_ex_id"])
             values = r["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            subject = values.get("subject_cn")
-            authorizee = values.get("authorizee_cn")
+            subject = values.get("subject_cn", {})
+            authorizee = values.get("authorizee_cn", {})
             # Search for identity match
             if (subject and requester_cn == subject.get("raw")) or (authorizee and requester_cn == authorizee.get("raw")):
                 pres_ex_id = r["pres_ex_id"]
@@ -43,19 +43,31 @@ async def get_proofs(client, records, requester_cn, submitter_did, topics):
 
                     result_item = {}
                     # Check credential type
-                    if values.get("credential_type").get("raw") == "technical":
+                    if values.get("credential_type", {}).get("raw") == "technical":
                         print("Credential type is TechCredential!")
+                        # Check DID
+                        did = await get_connection(client, r["connection_id"])
+                        did_dict = did.to_dict()
+                        if did_dict.get("their_did") != values.get("subject_did", {}).get("raw"):
+                            print("DID mismatch, skipping...")
+                            continue 
                         # Check certificate CN
                         metadata = await get_metadata(client, r["connection_id"])
                         metadata_dict = metadata.to_dict()
                         if not metadata_dict.get("results").get(subject.get("raw"), True):
                             print("Unknown certificate CN, skipping...")
                             continue
-                        result_item[pres_ex_id] = {"issuer_cn": values.get("issuer_cn").get("raw"), "issuer_did": values.get("issuer_did").get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
+                        result_item[pres_ex_id] = {"issuer_cn": values.get("issuer_cn", {}).get("raw"), "issuer_did": values.get("issuer_did", {}).get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                         partial_result = {}
                         partial_result[len(partial_result) + 1] = result_item
                         result[len(result) + 1] = partial_result
-                    elif (values.get("credential_type").get("raw") == "authorization"):
+                    elif (values.get("credential_type", {}).get("raw") == "authorization"):
+                        # Check DID
+                        did = await get_connection(client, r["connection_id"])
+                        did_dict = did.to_dict()
+                        if did_dict.get("their_did") != values.get("authorizee_did", {}).get("raw"):
+                            print("DID mismatch, skipping...")
+                            continue 
                         # Check certificate CN
                         metadata = await get_metadata(client, r["connection_id"])
                         print("Metadata:", metadata)
@@ -66,16 +78,16 @@ async def get_proofs(client, records, requester_cn, submitter_did, topics):
                             print("Unknown certificate CN, skipping...")
                             continue
                         # Check topic
-                        print("My topic:", topics)
-                        print("Topics in proof:", values.get("topics").get("raw"))
+                        print("My topic:", topic)
+                        print("Topics in proof:", values.get("topics", {}).get("raw"))
                         #if topics in json.loads(values.get("topics").get("raw")):
-                        proof_topics = json.loads(values.get("topics").get("raw")) if values.get("topics").get("raw").strip().startswith("[") else []
-                        if isinstance(proof_topics, list) and topics in proof_topics:
+                        proof_topics = json.loads(values.get("topics", {}).get("raw")) if values.get("topics", {}).get("raw").strip().startswith("[") else []
+                        if isinstance(proof_topics, list) and topic in proof_topics:
                         #if isinstance(values.get("topics").get("raw"), list) and topics in json.loads(values["topics"]["raw"]):
                             print("Credential type is not TechCredential, checking chained proofs...")
-                            result_item[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
+                            result_item[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn", {}).get("raw"), "authorizer_did": values.get("authorizer_did", {}).get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
                             # Check chain proofs based on root auth proof
-                            proofs = await check_chain(records, result_item, submitter_did, topics)
+                            proofs = await check_chain(client, records, result_item, submitter_did, topic)
                             if proofs:
                                 result[len(result) + 1] = proofs
                         else:
@@ -87,7 +99,7 @@ async def get_proofs(client, records, requester_cn, submitter_did, topics):
             print(f"Error getting proofs: {e}")
             return {}  
 
-async def check_chain(records, initial_proof, submitter_did, topics):
+async def check_chain(client, records, initial_proof, submitter_did, topic):
     # Copy input
     chained_proofs = initial_proof.copy()
 
@@ -115,8 +127,8 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                 r = records[i]
                 print("Check chain:", r["pres_ex_id"])
                 values = r["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-                subject = values.get("subject_cn")
-                authorizee = values.get("authorizee_cn")
+                subject = values.get("subject_cn", {})
+                authorizee = values.get("authorizee_cn", {})
                 # Search for identity match
                 if (subject and issuer == subject.get("raw")) or (authorizee and issuer == authorizee.get("raw")):
                     print("Prev_proof before loop check:", prev_proofs.keys()) 
@@ -158,10 +170,22 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                         pres_ex_id = r["pres_ex_id"]
 
                         # Check credential type
-                        if values.get("credential_type").get("raw") == "technical":
+                        if values.get("credential_type", {}).get("raw") == "technical":
                             print("Credential type is TechCredential!")
+                            # Check DID
+                            did = await get_connection(client, r["connection_id"])
+                            did_dict = did.to_dict()
+                            if did_dict.get("their_did") != values.get("subject_did", {}).get("raw"):
+                                print("DID mismatch, skipping...")
+                                continue 
+                            # Check certificate CN
+                            metadata = await get_metadata(client, r["connection_id"])
+                            metadata_dict = metadata.to_dict()
+                            if not metadata_dict.get("results").get(subject.get("raw"), True):
+                                print("Unknown certificate CN, skipping...")
+                                continue
                             chained_proofs.update(prev_proofs)
-                            chained_proofs[pres_ex_id] = {"issuer_cn": values.get("issuer_cn").get("raw"), "issuer_did": values.get("issuer_did").get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
+                            chained_proofs[pres_ex_id] = {"issuer_cn": values.get("issuer_cn", {}).get("raw"), "issuer_did": values.get("issuer_did", {}).get("raw"), "subject_cn": values.get("subject_cn").get("raw"), "subject_did": values.get("subject_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
 
                             verified_proofs.extend(list(chained_proofs.keys()))
                             print("Verified proofs:", verified_proofs)
@@ -171,12 +195,24 @@ async def check_chain(records, initial_proof, submitter_did, topics):
                             i = 0
                             continue
                             
-                        elif (values.get("credential_type").get("raw") == "authorization"):
-                            proof_topics = json.loads(values.get("topics").get("raw")) if values.get("topics").get("raw").strip().startswith("[") else []
-                            if isinstance(proof_topics, list) and topics in proof_topics:
+                        elif (values.get("credential_type", {}).get("raw") == "authorization"):
+                            # Check DID
+                            did = await get_connection(client, r["connection_id"])
+                            did_dict = did.to_dict()
+                            if did_dict.get("their_did") != values.get("authorizee_did", {}).get("raw"):
+                                print("DID mismatch, skipping...")
+                                continue 
+                            # Check certificate CN
+                            metadata = await get_metadata(client, r["connection_id"])
+                            metadata_dict = metadata.to_dict()
+                            if not metadata_dict.get("results").get(authorizee.get("raw"), True):
+                                print("Unknown certificate CN, skipping...")
+                                continue
+                            proof_topics = json.loads(values.get("topics", {}).get("raw")) if values.get("topics", {}).get("raw").strip().startswith("[") else []
+                            if isinstance(proof_topics, list) and topic in proof_topics:
                                 print("Credential type is not TechCredential, checking proofs...")
-                                prev_proofs[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn").get("raw"), "authorizer_did": values.get("authorizer_did").get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
-                                issuer = values.get("authorizer_cn").get("raw")
+                                prev_proofs[pres_ex_id] = {"authorizer_cn": values.get("authorizer_cn", {}).get("raw"), "authorizer_did": values.get("authorizer_did", {}).get("raw"), "authorizee_cn": values.get("authorizee_cn").get("raw"), "authorizee_did": values.get("authorizee_did").get("raw"), "data": {k: v.get("raw") for k, v in values.items()}}
+                                issuer = values.get("authorizer_cn", {}).get("raw")
                                 holder = values.get("authorizee_cn").get("raw")
                                 holders.append(holder)
                                 print("Updated holders:", holders)
