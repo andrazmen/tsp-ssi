@@ -174,7 +174,11 @@ async def handle_credential_webhook():
     event_data = await request.get_json()
     print("Received VC Webhook:", event_data, "\n")
 
-    if event_data["state"] == "offer-received":
+    if event_data["state"] == "offer-sent":
+        cred_ex_id = event_data['cred_ex_id']
+        offer = event_data['cred_preview']
+        print("Sent VC offer:", offer, "with cred_ex_id:", cred_ex_id, "\n")
+    elif event_data["state"] == "offer-received":
         cred_ex_id = event_data['cred_ex_id']
         offer = event_data['cred_offer']
         print("Received VC offer:", offer['credential_preview'], "with cred_ex_id:", cred_ex_id, "\n")

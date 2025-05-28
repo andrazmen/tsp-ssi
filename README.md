@@ -244,6 +244,7 @@ python acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ss
 ```
 
 ### Starting MQTT broker
+```bash
 sudo systemctl start mosquitto
 
 #logs
