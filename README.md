@@ -250,24 +250,26 @@ sudo systemctl start mosquitto
 #logs
 sudo journalctl -u mosquitto.service -n 15
 sudo tail -f /var/log/mosquitto/mosquitto.log
+```
 
 #### Testing MQTT
+Request from cem:
+```bash
+(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/control -d -r
+
+python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/control -m '{"test_key": "test_value"}'
 ```
-LISTENER:
-(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_listener.p12 -t /cem/test -d -r
 
-(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si.p12 -d -r
+Request from user:
+```bash
+python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/control -d -r
 
-python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/cem1 -d -r
+python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/control -m '{"test_key": "test_value"}'
+```
 
-python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/cem1/devices -d -r
+Request from aggregator:
+```bash
+python bin/secure_mqtt_listener.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/device -d -r
 
-PUBLISHER:
-(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/test_publisher.p12 -t /cem/test -m '{"key": "value"}'
-
-(.venv_tsp) andraz@andraz:~/tsp$ python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/si.manager@resonance.si.p12 -t /cem/si.manager@resonance.si -m '{"key": "value"}'
-
-python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/cf0a72fb-2661-4ec2-99f7-95fa3b0b1229.p12 -t /cem/cem1 -m '{"key": "value"}'
-
-python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/cem1/control -m '{"key": "value"}'
+python bin/secure_mqtt_publisher.py -s andraz.e5.ijs.si -p 8883 -k /home/andraz/tsp/CA-si/user-certificates/fcc931cf-8ed2-4a18-95b6-daca83a31894.p12 -t /cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/device -m '{"test_key": "test_value"}'
 ```
