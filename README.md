@@ -151,6 +151,9 @@ Universal controller provides following CLI commands:
 - create did                create new DID identifier with sov method
 - public did                returns current public DID identifier
 - assign did                assigns DID identifier for the new public DID identifier
+- register did              registers DID identifier on public ledger
+- endpoint                  returns the endpoint of specific DID identifier
+- set endpoint              sets new endpoint of specific DID identifier
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -160,6 +163,8 @@ Universal controller provides following CLI commands:
 - reject didx               rejects DID Exchange request or response and cancels establishing connection process
 - conns                     lists all connections (active and inactive)
 - conn                      returns specific connection and its data
+- conn metadata             returns connection metadata of specific connection
+- set conn metadata         sets connection metadata
 - delete conn               removes connection so its no longer usable (can't send or receive any messages or requests)
 - ping                      sends trust ping over selected connection
 - message                   sends message over connection using Basic Message protocol
@@ -173,7 +178,6 @@ Universal controller provides following CLI commands:
 - rev reg                   returns selected revocation registry ID and its information
 - active rev reg            lists current active revocation registry (two are created, when first is full second is used)
 - rev reg issued            returns number of issued credentials under selected revocation registry
-- rev reg issued details    returns details of issued credentials under selected revocation registry
 - revoke                    revokes selected credential
 - rev status                returns credential's revocation status (either stored (holder) or issued (issuer))
 - vc records                lists all credential exchange records
@@ -206,6 +210,9 @@ VCS controller provides following CLI commands:
 - create did                create new DID identifier with sov method
 - public did                returns current public DID identifier
 - assign did                assigns DID identifier for the new public DID identifier
+- register did              registers DID identifier on public ledger
+- endpoint                  returns the endpoint of specific DID identifier
+- set endpoint              sets new endpoint of specific DID identifier
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -215,6 +222,8 @@ VCS controller provides following CLI commands:
 - reject didx               rejects DID Exchange request or response and cancels establishing connection process
 - conns                     lists all connections (active and inactive)
 - conn                      returns specific connection and its data
+- conn metadata             returns connection metadata of specific connection
+- set conn metadata         sets connection metadata 
 - delete conn               removes connection so its no longer usable (can't send or receive any messages or requests)
 - ping                      sends trust ping over selected connection
 - message                   sends message over connection using Basic Message protocol

@@ -11,10 +11,10 @@ from aries_cloudcontroller import (
 
 from authentication.cert_authentication import (load_p12, sign_challenge, verify_signature, reconstruct_pem)
 from utils.tools import (decode, extract_oob)
-from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.ledger import (register_nym)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
-from services.connections import (get_connections, get_connection, delete_connection)
+from services.connections import (get_connections, get_connection, delete_connection, get_metadata, set_metadata)
 from services.trust_ping import send_ping
 from services.did_exchange import (accept_invitation, accept_request, reject)
 from services.basic_message import send_message
@@ -381,6 +381,24 @@ async def cli(stop_event: asyncio.Event):
                 print(result)
             except Exception as e:
                 print(f"Error getting public DID: {e}")
+        elif command.startswith("endpoint"):
+            print("Enter DID:")
+            try:
+                did = input()
+                result = await get_did_endpoint(client, did)
+                print(result)
+            except Exception as e:
+                print(f"Error getting DID endpoint: {e}")
+        elif command.startswith("set endpoint"):
+            try:
+                print("Enter DID:")
+                did = input()
+                print("Enter endpoint URL:")
+                url = input()
+                result = await set_did_endpoint(client, did, url)
+                print(result)
+            except Exception as e:
+                print(f"Error setting DID endpoint: {e}")
 
         # OOB
         elif command.lower() == "url":
@@ -473,7 +491,24 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Connection record for connection {connection_id}: {result}")
             except Exception as e:
                 print(f"Error fetching connection: {e}")
-
+        elif command.lower() == "conn metadata":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                result = await get_metadata(client, conn_id)
+                print(f"Metadata for connection {conn_id}: {result.to_dict()}")
+            except Exception as e:
+                print(f"Error getting metadata: {e}")
+        elif command.lower() == "set conn metadata":
+            try:
+                print("Enter connection ID:")
+                conn_id = input()
+                print("Enter certificate CN:")
+                certificate_cn = input()
+                result = await set_metadata(client, conn_id, certificate_cn)
+                print(f"Metadata for connection {conn_id} set: {result}")
+            except Exception as e:
+                print(f"Error setting metadata: {e}")
         elif command.lower() == "delete conn":
             try:
                 print("Enter connection ID:")
@@ -870,8 +905,8 @@ async def cli(stop_event: asyncio.Event):
                 pres_ex_id = input()
                 result = await get_matching_credentials(client, pres_ex_id)
                 print(f"Matching credentials: {result}", "\n")
-                print("Credential ID:", result[0].cred_info.referent)
-                print("Credential revocation ID:", result[0].cred_info.cred_rev_id)
+                print("First matching credential ID:", result[0].cred_info.referent)
+                print("First matching credential revocation ID:", result[0].cred_info.cred_rev_id)
             except Exception as e:
                 print(f"Error getting matching credentials: {e}")
         elif command.lower() == "vp problem":
@@ -948,7 +983,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error verifying presentation: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, register did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":

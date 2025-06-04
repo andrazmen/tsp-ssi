@@ -1,4 +1,4 @@
-from aries_cloudcontroller import DIDCreate
+from aries_cloudcontroller import DIDCreate, DIDEndpointWithType
 
 ## DIDS
 async def get_dids(client):
@@ -32,6 +32,21 @@ async def assign_public_did(client, did):
     did_dict = res.to_dict()
     result = did_dict["result"]
 
+    return result
+
+async def get_did_endpoint(client, did):
+    result = await client.wallet.get_did_endpoint(
+        did=did
+    )
+    return result
+
+async def set_did_endpoint(client, did, url):
+    result = await client.wallet.set_did_endpoint(
+        body = DIDEndpointWithType(
+            did=did,
+            endpoint=url
+        )
+    )
     return result
 
 ## CREDENTIALS

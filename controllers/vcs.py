@@ -13,7 +13,8 @@ from aries_cloudcontroller import (
 from vcs.x509_verification import (create_challenge, verify_sign)
 from vcs.proof_handler import (get_proofs)
 from utils.tools import (decode, extract_oob)
-from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.ledger import (register_nym)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
 from services.connections import (get_connections, get_connection, get_metadata, set_metadata, delete_connection)
 from services.trust_ping import send_ping
@@ -145,9 +146,9 @@ async def handle_basicmsg_webhook():
                 print("Received challenge signature:", data["value"], "\n")
                 asyncio.create_task(verify_sign(client, event_data["connection_id"], data))
         else:
-            print("Received basic message:", data, "\n")         
+            print("Received basic message:", event_data["content"], "\n")         
     except (json.JSONDecodeError, TypeError) as e: 
-        print("Received basic message:", data, "\n")  
+        print("Received basic message:", event_data["content"], "\n")  
 
     return jsonify({"status": "success"}), 200
 
@@ -300,6 +301,16 @@ async def cli(stop_event: asyncio.Event):
                 print(result)
             except Exception as e:
                 print(f"Error creating DID: {e}")
+        elif command.startswith("register did"):
+            try:
+                print("Enter DID:")
+                did = input()
+                print("Enter verkey:")
+                verkey = input()
+                result = await register_nym(client, did, verkey)
+                print(result)
+            except Exception as e:
+                print(f"Error registring DID: {e}")
         elif command.startswith("assign did"):
             print("Enter DID:")
             try:
@@ -314,6 +325,24 @@ async def cli(stop_event: asyncio.Event):
                 print(result)
             except Exception as e:
                 print(f"Error getting public DID: {e}")
+        elif command.startswith("endpoint"):
+            print("Enter DID:")
+            try:
+                did = input()
+                result = await get_did_endpoint(client, did)
+                print(result)
+            except Exception as e:
+                print(f"Error getting DID endpoint: {e}")
+        elif command.startswith("set endpoint"):
+            try:
+                print("Enter DID:")
+                did = input()
+                print("Enter endpoint URL:")
+                url = input()
+                result = await set_did_endpoint(client, did, url)
+                print(result)
+            except Exception as e:
+                print(f"Error setting DID endpoint: {e}")
 
         # OOB
         elif command.lower() == "url":
@@ -569,7 +598,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error fetching stored proofs: {e}")            
 
         else:
-            print("Unknown command. Try: dids, create did, public did, assign did, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, delete conn, ping, message, vp records, vp record, delete vp record, vp problem, vp request, verify, proofs")
+            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, vp records, vp record, delete vp record, vp problem, vp request, verify, proofs")
         
 # Main
 if __name__ == "__main__":
