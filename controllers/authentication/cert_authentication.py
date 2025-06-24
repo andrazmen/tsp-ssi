@@ -1,9 +1,14 @@
 from cryptography import x509
+from cryptography.x509 import load_pem_x509_certificate, load_der_x509_certificate
 from cryptography.hazmat.primitives.serialization import pkcs12, Encoding
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import NameOID
+#from certvalidator import CertificateValidator, ValidationContext
+#from oscrypto import asymmetric
 import os
+from datetime import datetime
 
 def load_p12(p12_path, password=None):
     with open(p12_path, "rb") as f:
@@ -61,10 +66,99 @@ def extract_cn(certificate):
     return cn
 
 def reconstruct_pem(cert_pem):
-    certificate = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
-
+    try:    
+        certificate = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
+    except Exception as e:
+        print("Reconstructing pem failed:", e)
+        return False
     return certificate
 
+"""
+def check_expiration(certificate):
+    now = datetime.utcnow()
+    if now < certificate.not_valid_before:
+        print("Certificate is not yet valid.")
+        return False
+    elif now > certificate.not_valid_after:
+        print("Certificate has expired.")
+        return False
+    print("Certificate is within valid period.")
+    return True
+"""
+"""
+def validate_certificate_chain(cert, intermediates=[], trusted_roots=[]):
+    # Convert main cert to oscrypto format
+    end_entity_cert = asymmetric.load_certificate(cert.public_bytes(Encoding.DER))
+    
+    # Convert any intermediates to oscrypto format
+    intermediate_oscrypto = [asymmetric.load_certificate(inter.public_bytes(Encoding.DER)) for inter in intermediates]
+    trusted_oscrypto = [asymmetric.load_certificate(root.public_bytes(Encoding.DER)) for root in trusted_roots]
+
+    context = ValidationContext(trust_roots=trusted_oscrypto, extra_trust_roots=[], other_certs=intermediate_oscrypto)
+    
+    try:
+        validator = CertificateValidator(end_entity_cert, intermediate_oscrypto, validation_context=context)
+        validator.validate_usage(set())
+        print("Certificate chain is valid.")
+        return True
+    except Exception as e:
+        print("Certificate chain validation failed:", e)
+        return False
+"""
+def validate_certificate_chain(cert):
+    try:
+        root = load_pem_x509_certificate(open("/home/andraz/tsp/CA-si/root-ca_rsa.pem", "rb").read(), default_backend())
+        issuing_ca  = load_pem_x509_certificate(open("/home/andraz/tsp/CA-si/issuing-ca_rsa.pem", "rb").read(), default_backend())
+
+        chain = [cert] + [issuing_ca]
+        trusted_roots = [root]
+
+        # Verify certificate in the chain
+        issuer_cert = chain[1]
+        subject_cert = chain[0]
+
+        if subject_cert.issuer != issuer_cert.subject:
+            raise Exception("Issuer subject mismatch in chain")
+
+        # Get public key
+        public_key = issuer_cert.public_key()
+
+        # Determine padding (simplified for RSA)
+        if isinstance(public_key, rsa.RSAPublicKey):
+            pad = padding.PKCS1v15()
+        elif isinstance(public_key, ec.EllipticCurvePublicKey):
+            pad = None  # EC doesn't use padding
+        else:
+            raise Exception("Unsupported key type")
+
+        public_key.verify(
+            subject_cert.signature,
+            subject_cert.tbs_certificate_bytes,
+            pad,
+            subject_cert.signature_hash_algorithm,
+        )
+
+        # Validate root
+        if issuer_cert.issuer == root.subject:
+            root.public_key().verify(
+                issuer_cert.signature,
+                issuer_cert.tbs_certificate_bytes,
+                padding.PKCS1v15() if isinstance(root.public_key(), rsa.RSAPublicKey) else None, 
+                issuer_cert.signature_hash_algorithm,
+            )
+        else:
+            raise Exception("Root did not match issuer of issuing ca")
+
+        # Date validity check
+        now = datetime.utcnow()
+        for c in chain + trusted_roots:
+            if not (c.not_valid_before <= now <= c.not_valid_after):
+                raise Exception(f"Certificate expired or not yet valid: {c.subject}")
+        return True
+
+    except Exception as e:
+        print("Certificate chain validation failed:", e)
+        return False
 #private_key, certificate = load_from_p12(p12_path)
 #print("Signed challenge:", sign_challenge(private_key, challenge))
 #print("Is it valid?", verify_signature(certificate, challenge, sign_challenge(private_key, challenge)))

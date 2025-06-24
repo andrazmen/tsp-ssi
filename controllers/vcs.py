@@ -10,8 +10,8 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from vcs.x509_verification import (create_challenge, verify_sign)
-from vcs.proof_handler import (get_proofs)
+from authentication.x509_verification import (create_challenge, verify_sign, verify_cert)
+from vcs.proof_handler import (get_proofs, handle_proof_delete, check_loop, check_ids)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.ledger import (register_nym)
@@ -32,6 +32,7 @@ client: AcaPyClient = None
 #agent: AcaPyAgent = False
 invitation = None
 invitation_url = None
+challenge = None
 
 def load_config(config_path):
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -144,9 +145,9 @@ async def handle_basicmsg_webhook():
         if data["type"] == "signature":
             if data["value"]:
                 print("Received challenge signature:", data["value"], "\n")
-                asyncio.create_task(verify_sign(client, event_data["connection_id"], data))
+                asyncio.create_task(process_signature(event_data["connection_id"], data))
         else:
-            print("Received basic message:", event_data["content"], "\n")         
+            print("Received basic message:", event_data["content"], "\n")          
     except (json.JSONDecodeError, TypeError) as e: 
         print("Received basic message:", event_data["content"], "\n")  
 
@@ -175,19 +176,46 @@ async def handle_proof_webhook():
         print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
 
     elif event_data["state"] == "done":
-        if event_data["verified"]:
+        if event_data["verified"] == "true":
             print("Presentation verified:", event_data, "sending challenge for certificate...\n")
 
-            metadata = await get_metadata(client, event_data["connection_id"])
-            metadata_dict = metadata.to_dict()
-            data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            if data.get("authorizee_cn", {}).get("raw") in metadata_dict["results"] or data.get("subject_cn", {}).get("raw") in metadata_dict["results"]:
-                print("Metadata", metadata_dict["results"], "\n")
-                print("Certificate with this CN already in metadata, skipping challenge...\n")
+            # Verify possible loop
+            loop = await check_loop(client, event_data)
+            if loop:
+                print("The same Verifiable Presentation already exists in the system, deleting...\n")
+                asyncio.create_task(handle_proof_delete(client, event_data))
                 return jsonify({"status": "success"}), 200
+            # Verify CN
+            #metadata = await get_metadata(client, event_data["connection_id"])
+            #metadata_dict = metadata.to_dict()
+            #data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
+            #if data.get("authorizee_cn", {}).get("raw") in metadata_dict["results"] or data.get("subject_cn", {}).get("raw") in metadata_dict["results"]:
+            #    print("Metadata", metadata_dict["results"], "\n")
+            #    print("Certificate with this CN already in metadata, skipping challenge...\n")
+            #    return jsonify({"status": "success"}), 200
 
-            asyncio.create_task(create_challenge(client, event_data))
-
+            #global challenge
+            #challenge = asyncio.create_task(create_challenge(client, None, event_data, None))
+            
+            # Verify DID
+            did = await check_ids(client, event_data)
+            if not did:
+                print("DID does not match with the one in the proof, deleting...\n")
+                asyncio.create_task(handle_proof_delete(client, event_data))
+                return jsonify({"status": "success"}), 200
+            # Cache chain
+            values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
+            cn = values.get("authorizee_cn", {}).get("raw") or values.get("subject_cn", {}).get("raw")
+            topic = values.get("topic", {}).get("raw") or values.get("cem_id", {}).get("raw")
+            asyncio.create_task(check_proofs(client, event_data, cn, topic))
+        elif event_data["verified"] == "false":
+            print("Presentation verification failed:", event_data["pres_ex_id"], "deleting proof...\n")
+            #asyncio.create_task(handle_proof_delete(client, event_data))
+            values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
+            cn = values.get("authorizee_cn", {}).get("raw") or values.get("subject_cn", {}).get("raw")
+            topic = values.get("topic", {}).get("raw") or values.get("cem_id", {}).get("raw")
+            asyncio.create_task(check_proofs(client, event_data, cn, topic))
+        
     return jsonify({"status": "success"}), 200
 
 # Access-control API
@@ -196,13 +224,18 @@ async def handle_acs_api():
     try:
         event_data = await request.get_json()
         print("Received acs api request:", event_data)
-        if event_data.get("id"):    
+        if event_data.get("id") and event_data.get("topic"):    
             id = event_data["id"]
-            topic = event_data.get("topic")
+            topic = event_data["topic"]
 
-            proofs = await check_proofs(client, id, topic)
+            proofs = await check_proofs(client, None, id, topic)
 
             print(f"Valid proofs: {proofs}", "\n")
+
+            if proofs == {}:
+                return jsonify(proofs), 404
+            if proofs == None:
+                return jsonify(), 500
             return jsonify(proofs), 200
         else:
             return jsonify({"error": "Bad Request"}), 400
@@ -242,25 +275,55 @@ async def process_request(event_data):
     except Exception as e:
         print(f"Error processing request: {e}") 
 
+async def process_signature(conn_id, data):
+    try:
+        print("Verifying signature...\n")
+        valid_sign = await verify_sign(client, conn_id, data, challenge)
+        if not valid_sign:
+            return False
+        valid_cert = await verify_cert(data)
+        if not valid_cert:
+            return False
+        print(f"Signature and chain are valid for certificate {cn}! Ready to send {data["cred_type"]} credential offer!","\n")
+        return True
+
+    except Exception as e:
+        print(f"Error verifying signature: {e}")
+
 # API functions
-async def check_proofs(client, id, topics):
+async def check_proofs(client, event_data, id, topic):
     try:
         #conns = await get_connections(client, state="active", their_did=did)
         #connection_id = conns.to_dict()["results"][0]["connection_id"]
         result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
 
         #TEST
-        #with open("utils/test1_doubled_upd.json") as f:
-        #    result = json.load(f)
-        #records = result["results"] 
+        with open("utils/tests/vcs-v2.json") as f:
+            result = json.load(f)
+        records = result["results"] 
 
-        records_dict = result.to_dict()
-        records = records_dict["results"]
+        #records_dict = result.to_dict()
+        #records = records_dict["results"]
         
         my_did = await get_public_did(client)
 
-        result = await get_proofs(client, records, id, my_did["did"], topics)
-
+        result = await get_proofs(client, event_data, records, id, my_did["did"], topic)
+        
+        if result.get("revoked", {}) == True:
+            print("No valid proofs, removing cache...", "\n")
+            for _, proof in result.items():
+                if proof == True or proof == False:
+                    continue
+                if proof.get("data").get("credential_type") == "authorization":
+                    print("a")
+                    #await delete_cached_get_proofs(get_proofs, requester_cn=proof.get("authorizee_cn"), topic=proof.get("data").get("topic"))
+                    #await invalidate_cache(proof.get("authorizee_cn"), proof.get("data").get("topic"))
+                if proof.get("data").get("credential_type") == "technical":
+                    print("b")
+                    #await delete_cached_get_proofs(get_proofs, requester_cn=proof.get("subject_cn"), topic=proof.get("data").get("cem_id"))
+                    #await invalidate_cache(proof.get("subject_cn"), proof.get("data").get("cem_id"))
+            return {}
+        
         return result
 
     except Exception as e:

@@ -9,7 +9,8 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from authentication.cert_authentication import (load_p12, sign_challenge, verify_signature, reconstruct_pem)
+from authentication.cert_authentication import (load_p12, sign_challenge, reconstruct_pem)
+from authentication.x509_verification import (verify_sign, verify_cert, create_challenge)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
 from services.ledger import (register_nym)
@@ -271,6 +272,7 @@ async def process_conn_request(event_data):
 
 async def process_offer_request(conn_id, data):
     try:
+        """
         print("Creating challenge...\n")  
         global challenge  
         challenge = os.urandom(32)
@@ -282,6 +284,9 @@ async def process_offer_request(conn_id, data):
         }
         print(f"Sending challenge to connection with ID: {conn_id}...","\n")
         await send_message(client, conn_id, json.dumps(message))
+        """
+        global challenge
+        challenge = await create_challenge(client, conn_id, None, data)
 
     except Exception as e:
         print(f"Error processing offer request: {e}")
@@ -308,21 +313,14 @@ async def process_challenge(conn_id, data):
 
 async def process_signature(conn_id, data):
     try:
-        #print("Verifying signature...\n")
-        signature = bytes.fromhex(data["value"])
-        certificate = reconstruct_pem(data["certificate"])
-        verification, cn = verify_signature(certificate, challenge, signature)
-        if cn == data["id"]:
-            if verification == True:
-                print(f"Signature is valid for certificate {cn}! Ready to send {data["cred_type"]} credential offer!","\n")
-            
-            else:
-                print("Signature invalid!\n")
-                return False
-        else:
-            print("Certificate CN does not match with the one in the request!\n")
+        print("Verifying signature...\n")
+        valid_sign = await verify_sign(client, conn_id, data, challenge)
+        if not valid_sign:
             return False
-
+        valid_cert = await verify_cert(data)
+        if not valid_cert:
+            return False
+        print(f"Signature and chain are valid for certificate {data["id"]}! Ready to send {data["cred_type"]} credential offer!","\n")
         return True
 
     except Exception as e:
