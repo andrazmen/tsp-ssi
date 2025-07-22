@@ -9,7 +9,7 @@ from aries_cloudcontroller import (
     AcaPyClient
 )
 
-from authentication.cert_authentication import (load_p12, sign_challenge, reconstruct_pem)
+from authentication.cert_authentication import (load_p12, sign_challenge)
 from authentication.x509_verification import (verify_sign, verify_cert, create_challenge)
 from utils.tools import (decode, extract_oob)
 from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
@@ -31,7 +31,6 @@ app = Quart(__name__)
 port = None
 base_url = None
 client: AcaPyClient = None
-#agent: AcaPyAgent = False
 invitation_conf = None
 invitation_url = None
 schema_name_conf = None
@@ -39,6 +38,7 @@ schema_version_conf = None
 schema_attr_conf = None
 p12_path_conf = None
 challenge = None
+received_certificate = None
 
 def load_config(config_path):
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -61,10 +61,6 @@ async def startup():
         print(f"Error creating client: {e}")
         sys.exit(1)
 
-    # Create public invitation
-    #print("Creating public invitation...")
-    #asyncio.create_task(process_create_invitation(client))
-    
 # Serving controller
 @app.while_serving
 async def serving():
@@ -72,8 +68,6 @@ async def serving():
     
     stop_event = asyncio.Event()
     cli_task = asyncio.create_task(cli(stop_event))
-    #task = loop.create_task(cli())  
-
     try:
        yield
 
@@ -82,11 +76,6 @@ async def serving():
         stop_event.set()
         await cli_task
         print("CLI stopped.")
-        #task.cancel()
-        #try:
-            #await task
-        #except asyncio.CancelledError:
-            #print("CLI task cancelled.")
 
 # Shut down controller
 @app.after_serving
@@ -149,20 +138,20 @@ async def handle_basicmsg_webhook():
     try:
         data = json.loads(event_data["content"])
 
-        if data["type"] == "offer_request":
-            if data["id"]:
-                print("Received credential offer request:", event_data["content"], "sending challenge...\n")
-                asyncio.create_task(process_offer_request(event_data["connection_id"], data))
+        if data["message_type"] == "offer_request":
+            if data["certificate"]:
+                print("Received credential offer request:", event_data["content"], "verifying certificate...\n")
+                asyncio.create_task(process_offer_request(event_data, data))
 
-        elif data["type"] == "nonce":
-            if data["value"]:
-                print("Received challenge nonce:", data["value"], "\n")
-                asyncio.create_task(process_challenge(event_data["connection_id"], data))
+        elif data["message_type"] == "offer_request:nonce":
+            if data["nonce_value"]:
+                print("Received challenge nonce:", data["nonce_value"], "\n")
+                asyncio.create_task(process_challenge(event_data, data))
 
-        elif data["type"] == "signature":
-            if data["value"]:
-                print("Received challenge signature:", data["value"], "\n")
-                asyncio.create_task(process_signature(event_data["connection_id"], data))
+        elif data["message_type"] == "offer_request:signature":
+            if data["signature_value"]:
+                print("Received challenge signature:", data["signature_value"], "\n")
+                asyncio.create_task(process_signature(event_data, data))
         else:
             print("Received basic message:", event_data["content"], "\n")   
     except (json.JSONDecodeError, TypeError) as e: 
@@ -245,17 +234,6 @@ async def handle_rev_notif_webhook():
     return jsonify({"status": "success"}), 200
 
 # Webhook functions
-"""
-async def process_create_invitation(client):
-    try:
-        inv = json.dumps(invitation)
-        result = await create_invitation(client, inv)
-        global invitation_url
-        invitation_url = result.invitation_url
-        print(f"Invitation created: {invitation_url}")
-    except Exception as e:
-        print(f"Error processing invitation creation: {e}")
-"""
 async def process_invitation(event_data):
     try:
         pub_did = await get_public_did(client)
@@ -270,57 +248,45 @@ async def process_conn_request(event_data):
     except Exception as e:
         print(f"Error processing connection request: {e}")
 
-async def process_offer_request(conn_id, data):
+async def process_offer_request(event_data, data):
     try:
-        """
-        print("Creating challenge...\n")  
-        global challenge  
-        challenge = os.urandom(32)
-        message = {
-            "type": "nonce",
-            "value": challenge.hex(),
-            "cred_type": data["cred_type"],
-            "id": data["id"]
-        }
-        print(f"Sending challenge to connection with ID: {conn_id}...","\n")
-        await send_message(client, conn_id, json.dumps(message))
-        """
+        global received_certificate
+        received_certificate = data["certificate"]
+        valid_cert = await verify_cert(data)
+        if not valid_cert:
+            return False
         global challenge
-        challenge = await create_challenge(client, conn_id, None, data)
+        message, challenge = await create_challenge(event_data)
+        print(f"Sending challenge to connection with ID: {event_data.get("connection_id")}...","\n")
+        await send_message(client, event_data.get("connection_id"), json.dumps(message))
 
     except Exception as e:
         print(f"Error processing offer request: {e}")
 
-async def process_challenge(conn_id, data):
+async def process_challenge(event_data, data):
     try:
         print("Loading certificate and private key...\n")
         certificate, private_key = load_p12(p12_path_conf)
         print("Signing challenge...\n")
-        nonce = bytes.fromhex(data["value"])
+        nonce = bytes.fromhex(data["nonce_value"])
         signature = sign_challenge(private_key, nonce)
  
         message = {
-            "type": "signature",
-            "value": signature.hex(),
-            "certificate": certificate,
-            "cred_type": data["cred_type"],
-            "id": data["id"]
+            "signature_value": signature.hex(),
+            "message_type": "offer_request:signature"
         }
-        await send_message(client, conn_id, json.dumps(message))
+        await send_message(client, event_data["connection_id"], json.dumps(message))
 
     except Exception as e:
         print(f"Error processing challenge: {e}")
 
-async def process_signature(conn_id, data):
+async def process_signature(event_data, data):
     try:
         print("Verifying signature...\n")
-        valid_sign = await verify_sign(client, conn_id, data, challenge)
+        valid_sign = await verify_sign(data, challenge, received_certificate)
         if not valid_sign:
             return False
-        valid_cert = await verify_cert(data)
-        if not valid_cert:
-            return False
-        print(f"Signature and chain are valid for certificate {data["id"]}! Ready to send {data["cred_type"]} credential offer!","\n")
+        print(f"Signature and certificate chain are valid! Ready to send credential offer!","\n")
         return True
 
     except Exception as e:
@@ -535,8 +501,14 @@ async def cli(stop_event: asyncio.Event):
                 conn_id = input()
                 print("Enter message:")
                 message = input()
+                if message.startswith("{"):
+                    message_json = json.loads(message)
+                    if message_json.get("message_type") == "offer_request":
+                        certificate, private_key = load_p12(p12_path_conf)
+                        message_json["certificate"] = certificate
+                        print(message_json)
+                        message = json.dumps(message_json)
                 result = await send_message(client, conn_id, message)
-                print("Message sent:", result)
             except Exception as e:
                 print(f"Error sending message: {e}")
 

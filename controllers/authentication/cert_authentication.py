@@ -73,38 +73,6 @@ def reconstruct_pem(cert_pem):
         return False
     return certificate
 
-"""
-def check_expiration(certificate):
-    now = datetime.utcnow()
-    if now < certificate.not_valid_before:
-        print("Certificate is not yet valid.")
-        return False
-    elif now > certificate.not_valid_after:
-        print("Certificate has expired.")
-        return False
-    print("Certificate is within valid period.")
-    return True
-"""
-"""
-def validate_certificate_chain(cert, intermediates=[], trusted_roots=[]):
-    # Convert main cert to oscrypto format
-    end_entity_cert = asymmetric.load_certificate(cert.public_bytes(Encoding.DER))
-    
-    # Convert any intermediates to oscrypto format
-    intermediate_oscrypto = [asymmetric.load_certificate(inter.public_bytes(Encoding.DER)) for inter in intermediates]
-    trusted_oscrypto = [asymmetric.load_certificate(root.public_bytes(Encoding.DER)) for root in trusted_roots]
-
-    context = ValidationContext(trust_roots=trusted_oscrypto, extra_trust_roots=[], other_certs=intermediate_oscrypto)
-    
-    try:
-        validator = CertificateValidator(end_entity_cert, intermediate_oscrypto, validation_context=context)
-        validator.validate_usage(set())
-        print("Certificate chain is valid.")
-        return True
-    except Exception as e:
-        print("Certificate chain validation failed:", e)
-        return False
-"""
 def validate_certificate_chain(cert):
     try:
         root = load_pem_x509_certificate(open("/home/andraz/tsp/CA-si/root-ca_rsa.pem", "rb").read(), default_backend())
@@ -159,6 +127,4 @@ def validate_certificate_chain(cert):
     except Exception as e:
         print("Certificate chain validation failed:", e)
         return False
-#private_key, certificate = load_from_p12(p12_path)
-#print("Signed challenge:", sign_challenge(private_key, challenge))
-#print("Is it valid?", verify_signature(certificate, challenge, sign_challenge(private_key, challenge)))
+

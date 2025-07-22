@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: Authorization Interface
+  description: >-
+    Authorization Interface provides an access control decision module. It evaluates whether an entity is permitted to access a specific resource.
+  version: "0.1"
+servers:
+  - url: "https://andraz.e5.ijs.si:8443/resonance/v1"
+paths:
+  /authorize/mqtt:
+    post:
+      tags:                                                             
+        - Authorize                                   
+      summary: Authorize the request to access a resource        
+      description: >-
+        Authorize interface returns an authorization decision regarding an entity that attempts to access a resource in a specific way (e.g., read/write). Authorization decision is made based on identity or authorization Verifiable Credentials. The interface returns the authorization decision to the caller which is responsible to enforce the decision. The authorization decision is positive if 200 is returned and negative otherwise.        
+      requestBody:
+        description: >-
+          A request body contains data needed for authorization decision          
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizationRequest'
+      responses:
+        '200':
+          description: Authorization decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationDecision'
+        '401':
+          description: Unauthorized, authentication has failed
+        '403':
+          description: Forbidden, user not authorized to access the resource
+        '404':
+          description: Resource not found
+        '500':
+          description: Internal server error         
+components:
+  schemas:
+    AuthorizationRequest:
+      type: object
+      description: >- 
+        An authorization request describing the identity of the subject, the target resource, and the action being attempted. The resource is defined by a type and its identifier and an action defines the manner in which the resource is accessed, f.e. read/write, etc. 
+      properties:
+        subject:
+          type: string
+          description: Identifier of the client - Common Name from a X.509 certificate
+        resource:
+          type: object
+          properties:
+            type:
+              type: string
+              description: Type of the resource (e.g., "topic")
+            raw:
+              type: string
+              description: Raw string path representing the resource
+        action:
+          type: string
+    AuthorizationDecision:
+      type: object
+      description: >- 
+        Authorization response returned by Authorization Interface
+      properties:
+        decision:
+          type: string

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # JSON body for the POST request
 payload = {
-    "id": "828b559d-7710-4816-ac9a-e22668c567d9",
+    "id": "fcc931cf-8ed2-4a18-95b6-daca83a31894",
     "topic": "/cem/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/rm/96439751-b2ad-496b-b80e-a3cb4e79b0db/devices"
 }
 
@@ -56,7 +56,7 @@ plt.legend()
 plt.tight_layout()
 
 # Save instead of show
-plt.savefig("response_times_cached-v2.png")
-print("Plot saved as response_times_cached-v2.png")
+plt.savefig("response_times-v3.png")
+print("Plot saved as response_times-v3.png")
 print(f"Average response time: {y_vals_avg:.3f} ms")
 

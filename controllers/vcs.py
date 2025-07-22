@@ -29,7 +29,6 @@ port = None
 base_url = None
 genesis = None
 client: AcaPyClient = None
-#agent: AcaPyAgent = False
 invitation = None
 invitation_url = None
 challenge = None
@@ -76,11 +75,6 @@ async def serving():
         stop_event.set()
         await cli_task
         print("CLI stopped.")
-        #task.cancel()
-        #try:
-            #await task
-        #except asyncio.CancelledError:
-            #print("CLI task cancelled.")
 
 # Shut down controller
 @app.after_serving
@@ -185,36 +179,27 @@ async def handle_proof_webhook():
                 print("The same Verifiable Presentation already exists in the system, deleting...\n")
                 asyncio.create_task(handle_proof_delete(client, event_data))
                 return jsonify({"status": "success"}), 200
-            # Verify CN
-            #metadata = await get_metadata(client, event_data["connection_id"])
-            #metadata_dict = metadata.to_dict()
-            #data = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            #if data.get("authorizee_cn", {}).get("raw") in metadata_dict["results"] or data.get("subject_cn", {}).get("raw") in metadata_dict["results"]:
-            #    print("Metadata", metadata_dict["results"], "\n")
-            #    print("Certificate with this CN already in metadata, skipping challenge...\n")
-            #    return jsonify({"status": "success"}), 200
-
-            #global challenge
-            #challenge = asyncio.create_task(create_challenge(client, None, event_data, None))
-            
             # Verify DID
             did = await check_ids(client, event_data)
             if not did:
                 print("DID does not match with the one in the proof, deleting...\n")
                 asyncio.create_task(handle_proof_delete(client, event_data))
                 return jsonify({"status": "success"}), 200
-            # Cache chain
+            print("No loop, DID checked, caching chain...")
+            # Find and cache chain
             values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            cn = values.get("authorizee_cn", {}).get("raw") or values.get("subject_cn", {}).get("raw")
-            topic = values.get("topic", {}).get("raw") or values.get("cem_id", {}).get("raw")
+            cn = values.get("subject_cn", {}).get("raw")
+            topic = values.get("resource", {}).get("raw")
             asyncio.create_task(check_proofs(client, event_data, cn, topic))
         elif event_data["verified"] == "false":
             print("Presentation verification failed:", event_data["pres_ex_id"], "deleting proof...\n")
+            # Delete proof
             #asyncio.create_task(handle_proof_delete(client, event_data))
-            values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            cn = values.get("authorizee_cn", {}).get("raw") or values.get("subject_cn", {}).get("raw")
-            topic = values.get("topic", {}).get("raw") or values.get("cem_id", {}).get("raw")
-            asyncio.create_task(check_proofs(client, event_data, cn, topic))
+            # TEST
+            #values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
+            #cn = values.get("subject_cn", {}).get("raw")
+            #topic = values.get("resource", {}).get("raw")
+            #asyncio.create_task(check_proofs(client, event_data, cn, topic))
         
     return jsonify({"status": "success"}), 200
 
@@ -250,17 +235,6 @@ async def process_fetch_genesis(genesis_file_url):
     return target_local_path
 
 # Webhook functions
-"""
-async def process_create_invitation(client):
-    try:
-        inv = json.dumps(invitation)
-        result = await create_invitation(client, inv)
-        global invitation_url
-        invitation_url = result.invitation_url
-        print(f"Invitation created: {invitation_url}")
-    except Exception as e:
-        print(f"Error processing invitation creation: {e}")
-"""
 async def process_invitation(event_data):
     try:
         pub_did = await get_public_did(client)
@@ -293,17 +267,14 @@ async def process_signature(conn_id, data):
 # API functions
 async def check_proofs(client, event_data, id, topic):
     try:
-        #conns = await get_connections(client, state="active", their_did=did)
-        #connection_id = conns.to_dict()["results"][0]["connection_id"]
         result = await get_pres_records(client, connection_id=None, role="verifier", state="done")
+        records_dict = result.to_dict()
+        records = records_dict["results"]
 
         #TEST
-        with open("utils/tests/vcs-v2.json") as f:
-            result = json.load(f)
-        records = result["results"] 
-
-        #records_dict = result.to_dict()
-        #records = records_dict["results"]
+        #with open("utils/tests/vcs-v3.json") as f:
+        #    result = json.load(f)
+        #records = result["results"] 
         
         my_did = await get_public_did(client)
 
@@ -314,14 +285,7 @@ async def check_proofs(client, event_data, id, topic):
             for _, proof in result.items():
                 if proof == True or proof == False:
                     continue
-                if proof.get("data").get("credential_type") == "authorization":
-                    print("a")
-                    #await delete_cached_get_proofs(get_proofs, requester_cn=proof.get("authorizee_cn"), topic=proof.get("data").get("topic"))
-                    #await invalidate_cache(proof.get("authorizee_cn"), proof.get("data").get("topic"))
-                if proof.get("data").get("credential_type") == "technical":
-                    print("b")
-                    #await delete_cached_get_proofs(get_proofs, requester_cn=proof.get("subject_cn"), topic=proof.get("data").get("cem_id"))
-                    #await invalidate_cache(proof.get("subject_cn"), proof.get("data").get("cem_id"))
+                # todo: DELETE CACHE FOR EACH VP IN CHAIN
             return {}
         
         return result

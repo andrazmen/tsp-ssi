@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Verifiable Credential Service API
+  description: |
+    API endpoint that returns a valid chain of structured data objects, extracted from individual Verifiable Presentations (VPs). 
+    Each object in the chain represents either an authorization or a technical credential. 
+    While the service processes actual Verifiable Presentations, the returned chain consists of structured metadata and credential content extracted from those presentations. All objects in the chain refer to the same protected resource path and are linked by subject-issuer delegation.
+    Only credentials that are non-revoked and satisfy constraints on permitted actions, time slots, and validity intervals are included in the result.
+  version: 1.0.0
+components:
+  schemas:
+    ChainRequest:
+      type: object
+      required:
+        - id
+        - topic
+      description: Request object for resolving a credential chain
+      properties:
+        id:
+          type: string
+          description: The Common Name from the X.509 digital certificate of the subject for which the valid credential chain is requested.
+          example: fcc931cf-8ed2-4a18-95b6-daca83a31894
+        topic:
+          type: string
+          description: |
+            The resource path for which the valid credential chain is requested.
+            In authorization credentials, this may correspond to a topic-like communication path, but is referred to here generally as a resource path.
+          example: /cem/.../rm/.../devices
+    ChainResponse:
+      type: object
+      description: |
+        Map of valid data objects extracted from Verifiable Presentations forming the resulting credential chain.
+        Each object represents a credential instance identified by its associated presentation exchange ID (UUID).
+      additionalProperties:
+        $ref: '#/components/schemas/ChainElement'
+
+    ChainElement:
+      type: object
+      required:
+        - data
+        - identifiers
+        - issuer_cn
+        - issuer_did
+        - subject_cn
+        - subject_did
+      description: |
+        A single element in the returned chain, representing either an authorization or a technical credential.
+        Each element is derived from a Verifiable Presentation and contains credential attributes, trust metadata, and delegation relationships between subject and issuer.
+      properties:
+        data:
+          $ref: '#/components/schemas/CredentialAttributes'
+        identifiers:
+          $ref: '#/components/schemas/VPIdentifiers'
+        issuer_cn:
+          type: string
+          description: The Common Name from the X.509 digital certificate of the credential issuer
+        issuer_did:
+          type: string
+          description: The Decentralized Identifier (DID) of the credential issuer
+        subject_cn:
+          type: string
+          description: The Common Name from the X.509 digital certificate of the credential subject
+        subject_did:
+          type: string
+          description: The Decentralized Identifier (DID) of the credential subject
+    CredentialAttributes:
+      type: object
+      description: Attributes extracted from a credential embedded in a Verifiable Presentation
+      properties:
+        actions:
+          type: string
+          description: JSON array string of allowed actions
+        credential_type:
+          type: string
+          enum: [authorization, technical]
+          description: Type of credential
+        description:
+          type: string
+        issue_datetime:
+          type: string
+          format: date-time
+        issuer_cn:
+          type: string
+        issuer_did:
+          type: string
+        issuer_role:
+          type: string
+        resource:
+          type: string
+          description: Resource path
+        resource_type:
+          type: string
+          enum: [cem:hems, topic]
+        subject_cn:
+          type: string
+        subject_did:
+          type: string
+        subject_role:
+          type: string
+        time_slot:
+          type: string
+          description: JSON array string of allowed days
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+      required:
+        - actions
+        - credential_type
+        - issuer_cn
+        - issuer_did
+        - resource
+        - subject_cn
+        - subject_did
+        - time_slot
+        - valid_from
+        - valid_until
+    VPIdentifiers:
+      type: object
+      description: >
+        Identifiers and cryptographic metadata extracted from the Verifiable Presentation, including revocation and schema information.
+      properties:
+        cred_def_id:
+          type: string
+        cred_rev_id:
+          type: string
+        rev_reg_id:
+          type: string
+        schema_id:
+          type: string
+        timestamp:
+          type: integer
+paths:
+  /api/acs:
+      post:
+        summary: Resolve credential chain for subject and resource
+        description: |
+          Accepts a subject identifier and a resource path, and returns a valid structured chain of data
+          derived from individual Verifiable Presentations.
+          Each object in the returned chain corresponds to either an authorization or a technical credential,
+          linked through issuer-subject relationships.
+          Only credentials that are active, non-revoked and relevant — based on their declared actions, time slots, and validity periods — are included in the chain.
+        requestBody:
+          description: >
+            Request body containing subject identifier and resource path for which the credential chain is to be resolved.
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainRequest'
+        responses:
+          '200':
+            description: Valid credential chain has been returned
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ChainResponse'
+          '400':
+            description: Invalid input – missing fields or incorrectly formatted values
+          '404':
+            description: Valid chain not found - empty map has been returned
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          '500':
+            description: Internal server error

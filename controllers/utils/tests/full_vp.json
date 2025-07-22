@@ -1,0 +1,107 @@
+{
+            "state": "done",
+            "created_at": "2025-05-30T12:25:30.646582Z",
+            "updated_at": "2025-05-30T12:26:25.076970Z",
+            "trace": true,
+            "pres_ex_id": "2ac932a5-2f09-4792-8c37-786d75c311bc",
+            "connection_id": "729d189c-8990-492b-a5f3-096b7a7085a8",
+            "thread_id": "1db62995-84da-4d83-8c6b-5e8e3a5c6d2d",
+            "initiator": "external",
+            "role": "verifier",
+            "by_format": {
+                "pres_proposal": {},
+                "pres_request": {},
+                "pres": {
+                    "anoncreds": {
+                    "requested_proof": {
+                        "revealed_attrs": {},
+                        "revealed_attr_groups": {
+                        "auth_attr": {
+                            "sub_proof_index": 0,
+                            "values": {
+                            "issuer_role": {
+                                "raw": "technical_aggregator",
+                                "encoded": "103905062049704397614541121932409314791581267886059499616069460034540806948339"
+                                },
+                            "valid_until": {
+                                "raw": "2025-12-31T13:54:59+00:00",
+                                "encoded": "34784148392610655435988691734840815734166010298624904961621967142271218879238"
+                                },
+                            "issuer_cn": {
+                                "raw": "47658be9-6964-4565-a3a3-4abbe9b60da1",
+                                "encoded": "2112806453160385196236029441737070147733905726927345925764572546758529394091"
+                                },
+                            "resource_type": {
+                                "raw": "cem:hems",
+                                "encoded": "114854183182792984866811081600662615623276581796793663290677316546596586202702"
+                                },
+                            "description": {
+                                "raw": "test credential",
+                                "encoded": "106202153180029585508990877594774867947479642241220349872361070436744308188699"
+                                },
+                            "actions": {
+                                "raw": "[\"subscribe\", \"read\", \"write\"]",
+                                "encoded": "11394673893145713698170088759274373627217257279728119031302640323839680947528"
+                                },
+                            "subject_did": {
+                                "raw": "did:sov:VWJgMNS75SWMpkp2gT74Zq",
+                                "encoded": "7992051661258552400683549974687782973330985912160868984615661036585224887105"
+                                },
+                            "issue_datetime": {
+                                "raw": "2025-05-30T13:50:59+00:00",
+                                "encoded": "115383515461575864561252338825507686323700051417934603569346402485722806430807"
+                                },
+                            "subject_cn": {
+                                "raw": "cf0a72fb-2661-4ec2-99f7-95fa3b0b1229",
+                                "encoded": "71982529926490919255404359584333226913510334338043353907696761309693649177078"
+                                },
+                            "issuer_did": {
+                                "raw": "did:sov:E56xjJ1frUaQUr47sN14nn",
+                                "encoded": "82010805879673053436077660944110785515537909934626490362793070115059149700759"
+                                },
+                            "time_slot": {
+                                "raw": "[\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\", \"saturday\", \"sunday\"]",
+                                "encoded": "107478099645978703262709468118697215575391729442169522036300031140251412510606"
+                                },
+                            "valid_from": {
+                                "raw": "2025-07-07T09:54:59+00:00",
+                                "encoded": "95601650904621238094935196632848793769520532384930740803315546489453267905134"
+                                },
+                            "subject_role": {
+                                "raw": "end_user",
+                                "encoded": "75283204941493524542669362448495124693985500291392909620318886461855696984976"
+                                },
+                            "resource": {
+                                "raw": "cem_id/5efff1f7-7b0f-47e0-bf25-3055ca8e7fe8/hems_id/1.2.826.0.1.3680043",
+                                "encoded": "113751630768973002220512405668355988352982880518205687275762517643816038322153"
+                                },
+                            "credential_type": {
+                                "raw": "technical",
+                                "encoded": "59655324325165046497442593603731160868599932392635819432860487689146806822685"
+                                }
+                            }
+                        }
+                        },
+                        "self_attested_attrs": {
+                        "cred_rev_id": "1"
+                        },
+                        "unrevealed_attrs": {},
+                        "predicates": {}
+                    },
+                    "identifiers": [
+                        {
+                        "schema_id": "E56xjJ1frUaQUr47sN14nn:2:TechCredential:2.0.0",
+                        "cred_def_id": "E56xjJ1frUaQUr47sN14nn:3:CL:103:default",
+                        "rev_reg_id": "E56xjJ1frUaQUr47sN14nn:4:E56xjJ1frUaQUr47sN14nn:3:CL:103:default:CL_ACCUM:0",
+                        "timestamp": 1751890725
+                        }
+                    ]
+                    }
+                }
+            },
+            "verified": "true",
+            "verified_msgs": [],
+            "auto_present": false,
+            "auto_verify": false,
+            "auto_remove": false
+        }

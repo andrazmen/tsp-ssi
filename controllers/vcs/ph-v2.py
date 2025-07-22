@@ -44,7 +44,7 @@ async def invalidate_cache(arg1, arg2):
     await caches.get("default").clear()
 """
 #@cached(ttl=600, cache=cache, key_builder=custom_key_builder)
-#@cached(ttl=600)
+@cached(ttl=600)
 async def get_proofs(client, event_data, records, requester_cn, submitter_did, topic):
     result_item = {}
     result = {} 
@@ -77,8 +77,7 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                         print("Revoked proofs found:", revoked_proofs)
                         for proof in revoked_proofs:
                             print(f"Credential in proof {proof} is revoked! Deleting proof...", "\n")
-                            #await handle_proof_delete(client, event_data)
-                            # DELETE CACHED PROOFS
+                            await handle_proof_delete(client, event_data)
                             return {}
                     return proofs
                 else:
@@ -101,7 +100,7 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                     print("Credential type is TechCredential!")
                     # Check cem id
                     resource = values.get("resource", {}).get("raw")
-                    cem_id = resource.split("/")[resource.split("/").index("CEM") + 1]
+                    cem_id = resource.split("/")[resource.split("/").index("cem_id") + 1]
                     if not topic.split("/")[2] == cem_id:
                         print("Topic does not match, skipping...")
                         continue
@@ -115,7 +114,7 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                         result = {}
                     if r["pres_ex_id"] in revoked_proofs:
                         print(f"Credential in proof {pres_ex_id} is revoked! Deleting proof...", "\n")
-                        #await handle_proof_delete(client, r)
+                        await handle_proof_delete(client, r)
                         result = {}
                     return result
                 elif (values.get("credential_type", {}).get("raw") == "authorization"):
@@ -138,11 +137,8 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                             print("Revoked proofs found:", revoked_proofs)
                             for proof in revoked_proofs:
                                 print(f"Credential in proof {proof} is revoked! Deleting proof...", "\n")
-                                #await handle_proof_delete(client, next((rec for rec in records if rec["pres_ex_id"] == proof), None))
-                                #DELETE CACHED PROOFS
-                            #return {}
-                            proofs.update({"revoked": True})
-                            print("Updated proofs with revoked status:", proofs)
+                                await handle_proof_delete(client, next((rec for rec in records if rec["pres_ex_id"] == proof), None))
+                            return {}
                         return proofs
                 else:
                     print("Credential type is neither AuthCredential nor TechCredential, skipping...")
@@ -153,10 +149,6 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
             return {}  
 
 async def check_chain(client, initial_proof, topic):
-    # TEST
-    #with open("utils/tests/vcs-v3.json") as f:
-    #        result = json.load(f)
-    #records = result["results"] 
     # Fetch updated records
     recs = await get_pres_records(client, connection_id=None, role="verifier", state="done")
     records_dict = recs.to_dict()
@@ -194,7 +186,7 @@ async def check_chain(client, initial_proof, topic):
                     print("Credential type is TechCredential!")
                     # Check cem id
                     resource = values.get("resource", {}).get("raw")
-                    cem_id = resource.split("/")[resource.split("/").index("CEM") + 1]
+                    cem_id = resource.split("/")[resource.split("/").index("cem_id") + 1]
                     if not topic.split("/")[2] == cem_id:
                         print("Topic does not match, skipping...")
                         i += 1
@@ -255,7 +247,6 @@ async def check_revocation_status(client, submitter_did, vps):
             if rev_reg_id not in rev_lists:
                 rev_list = await ledger_handler(submitter_did, rev_reg_id, rev_lists)
                 rev_lists.update(rev_list)
-            #if int(cred_rev_id) in []:
             if int(cred_rev_id) in rev_lists[rev_reg_id]:
                 print(f"Credential with cred_rev_id {cred_rev_id} is revoked!", "\n")
                 revoked_proofs.append(r)
@@ -283,41 +274,3 @@ async def handle_proof_delete(client, event_data):
         await send_message(client, event_data["connection_id"], f"Presentation exchange record {event_data['pres_ex_id']} deleted due to verification failure.")
     except Exception as e:
         print(f"Error deleting presentation exchange record: {e}")
-
-async def check_ids(client, record):
-    try:
-        print("Checking DID...")
-        values = record["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-        # Check DID
-        did = await get_connection(client, record["connection_id"])
-        did_dict = did.to_dict()
-        if did_dict.get("their_did") != values.get("subject_did", {}).get("raw"):
-            print("DID mismatch, skipping...")
-            return False 
-        return True
-    except Exception as e:
-        print(f"Error checking IDs: {e}")
-        #await delete_pres_record(client, record["pres_ex_id"])
-        return False
-
-async def check_loop(client, event_data):
-    try:
-        print("Checking for possible loop in proofs...")
-        recs = await get_pres_records(client, connection_id=None, role="verifier", state="done")
-        records_dict = recs.to_dict()
-        records = records_dict["results"]
-        current_values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-        for r in records:
-            if r["pres_ex_id"] == event_data["pres_ex_id"]:
-                continue
-            values = r["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            current_subject = current_values.get("subject_cn", {}).get("raw")
-            current_resource = current_values.get("resource", {}).get("raw")
-            subject = values.get("subject_cn", {}).get("raw")
-            resource = values.get("resource", {}).get("raw")
-            if subject == current_subject and current_resource == resource:
-                print(f"Possible loop detected with subject {subject} in proof {r['pres_ex_id']}.")
-                return True
-        return False
-    except Exception as e:
-        print(f"Error checking for loops: {e}")
