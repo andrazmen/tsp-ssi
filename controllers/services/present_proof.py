@@ -9,7 +9,6 @@ async def delete_pres_record(client, pres_ex_id):
     result = await client.present_proof_v2_0.delete_record(
         pres_ex_id = pres_ex_id
     )
-
     return result
 
 # Fetch a single presentation exchange record
@@ -17,20 +16,14 @@ async def get_pres_record(client, pres_ex_id):
     result = await client.present_proof_v2_0.get_record(
         pres_ex_id = pres_ex_id
     )
-
     return result
 
 # Fetch all present-proof exchange record
 async def get_pres_records(client, connection_id, role, state):
     result = await client.present_proof_v2_0.get_records(
         connection_id = connection_id,
-        #descending,
-        #limit,
-        #offset,
-        #order_by,
         role = role,
         state = state
-        #thread_id,
     )
 
     return result
@@ -39,14 +32,7 @@ async def get_pres_records(client, connection_id, role, state):
 async def get_matching_credentials(client, pres_ex_id):
     result = await client.present_proof_v2_0.get_matching_credentials(
         pres_ex_id = pres_ex_id,
-        #count
-        #extra_query
-        #limit
-        #offset
-        #referent
-        #start
     )
-
     return result
 
 # Send a problem report for presentation exchange
@@ -57,7 +43,6 @@ async def report_pres_problem(client, pres_ex_id, description):
             description = description
         )
     )
-
     return result
 
 # Sends a proof presentation
@@ -79,12 +64,9 @@ async def send_presentation(client, pres_ex_id, cred_id, cred_rev_id):
                 },
                 trace = True
             ),
-            #dif
-            #indy
             trace = True
         )
     )
-
     return result
 
 # Sends a presentation proposal
@@ -94,7 +76,6 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
         body = V20PresProposalRequest(
             auto_present = False,
             auto_remove = False,
-            #comment = comment,
             connection_id = connection_id,
             presentation_proposal = V20PresProposalByFormat(
                 anoncreds = AnoncredsPresentationRequest(
@@ -106,7 +87,6 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
                     nonce = random_nonce(),
                     requested_attributes={
                         "auth_attr": AnoncredsPresentationReqAttrSpec(
-                            #name = "time_slot",
                             names=names,
                             non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
@@ -121,13 +101,10 @@ async def send_pres_proposal(client, connection_id, names, schema_name):
                     requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
                 )
-                #dif
-                #indy
             ),
             trace = True
         )
     )
-
     return result
 
 # Sends a presentation request in reference to a proposal
@@ -140,7 +117,6 @@ async def send_pres_request(client, pres_ex_id):
             trace = True
         )
     )
-
     return result
 
 # Sends a free presentation request not bound to any proposal
@@ -150,7 +126,6 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
         body = V20PresSendRequestRequest(
             auto_remove = False,
             auto_verify = True,
-            #comment
             connection_id = connection_id,
             presentation_request = V20PresRequestByFormat(
                 anoncreds = AnoncredsPresentationRequest(
@@ -162,7 +137,6 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
                     nonce = random_nonce(),
                     requested_attributes={
                         "auth_attr": AnoncredsPresentationReqAttrSpec(
-                            #name = "time_slot",
                             names = names,
                             non_revoked={"from": 0, "to": timestamp},
                             restrictions = [{
@@ -177,13 +151,10 @@ async def send_pres_request_free(client, connection_id, names, schema_name):
                     requested_predicates = {}, #AnoncredsPresentationReqPredSpec
                     version = "1.0"
                 )
-                #dif
-                #indy
             ),
             trace = True
         )
     )
-
     return result
 
 # Verify a received presentation
@@ -191,5 +162,4 @@ async def verify_presentation(client, pres_ex_id):
     result = await client.present_proof_v2_0.verify_presentation(
         pres_ex_id = pres_ex_id
     )
-
     return result

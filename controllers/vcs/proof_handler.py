@@ -1,49 +1,13 @@
 import time
 from datetime import datetime
 import json
-import hashlib
-
-from aiocache import caches, Cache, cached
+from aiocache import cached
 
 from .check_revocation import get_rev_list
 from services.connections import get_metadata, get_connection
 from services.present_proof import delete_pres_record, get_pres_records
 from services.basic_message import send_message
-"""
-cache=Cache.MEMORY
 
-def generate_key(arg1, arg2):
-    key_input = f"{arg1}:{arg2}".encode("utf-8")
-    hash_digest = hashlib.sha256(key_input).hexdigest()
-    return f"get_proofs:{hash_digest}"
-
-def custom_key_builder(func, *args):
-    # Extract the first two positional args (arg1, arg2)
-    arg1 = args[3]
-    arg2 = args[5]
-    print("args:", arg1, arg2)
-    
-    #print(f"Building key {func.__name__}:{hash_digest}")
-    #return f"{func.__name__}:{hash_digest}"
-    #return f"{func.__name__}:{arg1}:{arg2}"
-    key = generate_key(arg1, arg2)
-    print(F"Bulding key {key}")
-    return key
-
-async def invalidate_cache(arg1, arg2):
-    #key_input = f"{arg1}:{arg2}".encode("utf-8")
-    #hash_digest = hashlib.sha256(key_input).hexdigest()
-    #key = f"get_proofs:{hash_digest}"
-    key = generate_key(arg1, arg2)
-    
-    print(f"Ready to delete key {key}")
-    #print(f"Ready to delete key get_proofs:{hash_digest}")
-    #key = f"get_proofs:{arg1}:{arg2}"
-    print("Before delete:", await caches.get("default").exists(key))
-    #await caches.get("default").delete(key)
-    await caches.get("default").clear()
-"""
-#@cached(ttl=600, cache=cache, key_builder=custom_key_builder)
 #@cached(ttl=600)
 async def get_proofs(client, event_data, records, requester_cn, submitter_did, topic):
     result_item = {}
@@ -69,6 +33,7 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                 # Check chain proofs based on leaf auth proof
                 proofs = await check_chain(client, result_item, topic)
                 if proofs:
+                    # Check revocation
                     revoked_proofs = await check_revocation_status(client, submitter_did, proofs)
                     if revoked_proofs == None:
                         print("Error checking revocation status, returning empty result.")
@@ -77,8 +42,8 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                         print("Revoked proofs found:", revoked_proofs)
                         for proof in revoked_proofs:
                             print(f"Credential in proof {proof} is revoked! Deleting proof...", "\n")
-                            #await handle_proof_delete(client, event_data)
-                            # DELETE CACHED PROOFS
+                            # Delete proof
+                            await handle_proof_delete(client, event_data)
                             return {}
                     return proofs
                 else:
@@ -115,7 +80,8 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                         result = {}
                     if r["pres_ex_id"] in revoked_proofs:
                         print(f"Credential in proof {pres_ex_id} is revoked! Deleting proof...", "\n")
-                        #await handle_proof_delete(client, r)
+                        # Delete proof
+                        await handle_proof_delete(client, r)
                         result = {}
                     return result
                 elif (values.get("credential_type", {}).get("raw") == "authorization"):
@@ -130,6 +96,7 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                     # Check chain proofs based on leaf auth proof
                     proofs = await check_chain(client, result_item, topic)
                     if proofs:
+                        # Check revocation
                         revoked_proofs = await check_revocation_status(client, submitter_did, proofs)
                         if revoked_proofs == None:
                             print("Error checking revocation status, returning empty result.")
@@ -138,11 +105,9 @@ async def get_proofs(client, event_data, records, requester_cn, submitter_did, t
                             print("Revoked proofs found:", revoked_proofs)
                             for proof in revoked_proofs:
                                 print(f"Credential in proof {proof} is revoked! Deleting proof...", "\n")
-                                #await handle_proof_delete(client, next((rec for rec in records if rec["pres_ex_id"] == proof), None))
-                                #DELETE CACHED PROOFS
-                            #return {}
-                            proofs.update({"revoked": True})
-                            print("Updated proofs with revoked status:", proofs)
+                                # Delete proof
+                                await handle_proof_delete(client, next((rec for rec in records if rec["pres_ex_id"] == proof), None))
+                            return {}
                         return proofs
                 else:
                     print("Credential type is neither AuthCredential nor TechCredential, skipping...")
@@ -157,6 +122,7 @@ async def check_chain(client, initial_proof, topic):
     #with open("utils/tests/vcs-v3.json") as f:
     #        result = json.load(f)
     #records = result["results"] 
+
     # Fetch updated records
     recs = await get_pres_records(client, connection_id=None, role="verifier", state="done")
     records_dict = recs.to_dict()
@@ -255,6 +221,7 @@ async def check_revocation_status(client, submitter_did, vps):
             if rev_reg_id not in rev_lists:
                 rev_list = await ledger_handler(submitter_did, rev_reg_id, rev_lists)
                 rev_lists.update(rev_list)
+            #TEST
             #if int(cred_rev_id) in []:
             if int(cred_rev_id) in rev_lists[rev_reg_id]:
                 print(f"Credential with cred_rev_id {cred_rev_id} is revoked!", "\n")
@@ -297,7 +264,6 @@ async def check_ids(client, record):
         return True
     except Exception as e:
         print(f"Error checking IDs: {e}")
-        #await delete_pres_record(client, record["pres_ex_id"])
         return False
 
 async def check_loop(client, event_data):
@@ -321,3 +287,4 @@ async def check_loop(client, event_data):
         return False
     except Exception as e:
         print(f"Error checking for loops: {e}")
+        return False

@@ -51,7 +51,7 @@ pip install aiohttp==3.9.4
 
 Install Quart for webhook server:
 ```bash
-pip instal Quart==0.20.0
+pip install Quart==0.20.0
 ```
 
 ## VON Network
@@ -140,20 +140,21 @@ source .venv_cloudcontroller/bin/activate
 
 cd controllers
 
-python3 controller.py --config config/user_config.py 
+python controller.py --config config/user_config.py 
 ```
 
 ### Universal controller
 Universal controller provides following CLI commands:
 
 ```
-- dids                      lists all DID identifiers saved in digital wallet
-- create did                create new DID identifier with sov method
-- public did                returns current public DID identifier
-- assign did                assigns DID identifier for the new public DID identifier
-- register did              registers DID identifier on public ledger
-- endpoint                  returns the endpoint of specific DID identifier
-- set endpoint              sets new endpoint of specific DID identifier
+- dids                      lists all DIDs saved in digital wallet
+- create did                create new DID with sov method
+- public did                returns current public DID
+- assign did                assigns DID for the new public DID
+- register did              registers DID on public ledger
+- endpoint                  returns the endpoint of specific DID
+- set endpoint              sets new endpoint of specific DID
+- rotate                    rotate keys of specific DID 
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -206,13 +207,14 @@ Universal controller provides following CLI commands:
 VCS controller provides following CLI commands:
 
 ```
-- dids                      lists all DID identifiers saved in digital wallet
-- create did                create new DID identifier with sov method
-- public did                returns current public DID identifier
-- assign did                assigns DID identifier for the new public DID identifier
-- register did              registers DID identifier on public ledger
-- endpoint                  returns the endpoint of specific DID identifier
-- set endpoint              sets new endpoint of specific DID identifier
+- dids                      lists all DIDs saved in digital wallet
+- create did                create new DID with sov method
+- public did                returns current public DID
+- assign did                assigns DID for the new public DID identifier
+- register did              registers DID on public ledger
+- endpoint                  returns the endpoint of specific DID
+- set endpoint              sets new endpoint of specific DID
+- rotate                    rotate keys of specific DID 
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -239,7 +241,7 @@ VCS controller provides following CLI commands:
 ## ACS and MQTT access control
 Access control service (ACS) deployment is accessible at the following location: https://git.e5.ijs.si/dusan/tsp.git. Repository includes instructions to generate and deploy Certificate Authority and to make server certificate for the ACS server and user certificate for clients.
 
-In ACS code, authorization engine for MQTT protocol is added, supporting SSI credentials. Based on SSI credential support, 2 access policies are defined.
+In ACS code, authorization engine for MQTT protocol is added, supporting SSI credentials. Based on SSI credential support, access policies are defined.
 
 Repository includes instructions for installing, patching, configuring and running Mosquitto MQTT broker.
 

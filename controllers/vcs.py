@@ -13,7 +13,7 @@ from aries_cloudcontroller import (
 from authentication.x509_verification import (create_challenge, verify_sign, verify_cert)
 from vcs.proof_handler import (get_proofs, handle_proof_delete, check_loop, check_ids)
 from utils.tools import (decode, extract_oob)
-from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status, rotate_keypair)
 from services.ledger import (register_nym)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
 from services.connections import (get_connections, get_connection, get_metadata, set_metadata, delete_connection)
@@ -24,7 +24,7 @@ from services.present_proof import (get_pres_record, get_pres_records, delete_pr
 
 app = Quart(__name__)
 
-# Global controller (aca-py client)
+# Globals
 port = None
 base_url = None
 genesis = None
@@ -49,11 +49,9 @@ async def startup():
             admin_insecure=True
         )
         print(f"Client created with base_url: {base_url}")
-
     except Exception as e:
         print(f"Error creating client: {e}")
         sys.exit(1)
-
     # Fetch genesis file
     print("Fetching genesis file...")
     asyncio.create_task(process_fetch_genesis(genesis))
@@ -62,14 +60,10 @@ async def startup():
 @app.while_serving
 async def serving():
     print("Starting CLI...")
-    
     stop_event = asyncio.Event()
     cli_task = asyncio.create_task(cli(stop_event))
-    #task = loop.create_task(cli())  
-
     try:
        yield
-
     finally:
         print("Shutting down CLI...")
         stop_event.set()
@@ -168,11 +162,10 @@ async def handle_proof_webhook():
         pres_ex_id = event_data['pres_ex_id']
         pres = event_data['by_format']
         print("Received vp presentation:", pres, "with pres_ex_id:", pres_ex_id, "\n")
-
+    # Receive verifiable presentation
     elif event_data["state"] == "done":
         if event_data["verified"] == "true":
             print("Presentation verified:", event_data, "sending challenge for certificate...\n")
-
             # Verify possible loop
             loop = await check_loop(client, event_data)
             if loop:
@@ -194,16 +187,10 @@ async def handle_proof_webhook():
         elif event_data["verified"] == "false":
             print("Presentation verification failed:", event_data["pres_ex_id"], "deleting proof...\n")
             # Delete proof
-            #asyncio.create_task(handle_proof_delete(client, event_data))
-            # TEST
-            #values = event_data["by_format"]["pres"]["anoncreds"]["requested_proof"]["revealed_attr_groups"]["auth_attr"]["values"]
-            #cn = values.get("subject_cn", {}).get("raw")
-            #topic = values.get("resource", {}).get("raw")
-            #asyncio.create_task(check_proofs(client, event_data, cn, topic))
-        
+            asyncio.create_task(handle_proof_delete(client, event_data))    
     return jsonify({"status": "success"}), 200
 
-# Access-control API
+# Valid chain API
 @app.route('/api/acs/', methods=['POST'])
 async def handle_acs_api():
     try:
@@ -277,17 +264,7 @@ async def check_proofs(client, event_data, id, topic):
         #records = result["results"] 
         
         my_did = await get_public_did(client)
-
         result = await get_proofs(client, event_data, records, id, my_did["did"], topic)
-        
-        if result.get("revoked", {}) == True:
-            print("No valid proofs, removing cache...", "\n")
-            for _, proof in result.items():
-                if proof == True or proof == False:
-                    continue
-                # todo: DELETE CACHE FOR EACH VP IN CHAIN
-            return {}
-        
         return result
 
     except Exception as e:
@@ -370,6 +347,14 @@ async def cli(stop_event: asyncio.Event):
                 print(result)
             except Exception as e:
                 print(f"Error setting DID endpoint: {e}")
+        elif command.startswith("rotate"):
+            try:
+                print("Enter DID:")
+                did = input()
+                result = await rotate_keypair(client, did)
+                print(result)
+            except Exception as e:
+                print(f"Error rotating keypair: {e}")
 
         # OOB
         elif command.lower() == "url":
@@ -625,7 +610,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error fetching stored proofs: {e}")            
 
         else:
-            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, vp records, vp record, delete vp record, vp problem, vp request, verify, proofs")
+            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, rotate, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, vp records, vp record, delete vp record, vp problem, vp request, verify, proofs")
         
 # Main
 if __name__ == "__main__":

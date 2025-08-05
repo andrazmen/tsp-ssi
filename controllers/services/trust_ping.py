@@ -8,5 +8,4 @@ async def send_ping(client, connection_id, comment):
             comment = comment
         )
     )
-
     return result

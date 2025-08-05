@@ -17,10 +17,6 @@ async def get_schema(client, schema_id):
 async def publish_schema(client, issuer_did, attributes, schema_name, schema_version):
     result = await client.anoncreds_schemas.create_schema(
         body =  SchemaPostRequest(
-        #   options = SchemaPostOption(
-        #       create_transaction_for_endorser
-        #       endorser_connection_id
-        #   ),
             var_schema = AnonCredsSchema(
                 attr_names = attributes, #list
                 issuer_id = issuer_did,

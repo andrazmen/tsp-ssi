@@ -5,7 +5,6 @@ async def get_dids(client):
     result = await client.wallet.get_dids()
     dids_dict = result.to_dict()
     dids = dids_dict["results"]
-
     return dids
 
 async def create_did(client, type):
@@ -14,7 +13,6 @@ async def create_did(client, type):
     )
     did_dict = result.to_dict()
     did = did_dict["result"]
-
     return did
 
 async def get_public_did(client):
@@ -22,7 +20,6 @@ async def get_public_did(client):
 
     did_dict = result.to_dict()
     did = did_dict["result"]
-
     return did
 
 async def assign_public_did(client, did):
@@ -31,7 +28,6 @@ async def assign_public_did(client, did):
     )
     did_dict = res.to_dict()
     result = did_dict["result"]
-
     return result
 
 async def get_did_endpoint(client, did):
@@ -54,28 +50,28 @@ async def delete_credential(client, cred_id):
     result = await client.credentials.delete_record(
         credential_id = cred_id
     )
-
     return result
 
 async def get_credential(client, cred_id):
     result = await client.credentials.get_record(
         credential_id = cred_id
     )
-
     return result
 
 async def get_credentials(client):
     result = await client.credentials.get_records()
     vcs_dict = result.to_dict()
     vcs = vcs_dict["results"]
-
     return vcs
 
 async def get_revocation_status(client, cred_id):
     result = await client.credentials.get_revocation_status(
         credential_id = cred_id
-        #var_from
-        #to
     )
+    return result
 
+async def rotate_keypair(client, did):
+    result = await client.wallet.rotate_keypair(
+        did=did
+    )
     return result

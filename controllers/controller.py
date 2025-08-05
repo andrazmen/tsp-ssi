@@ -12,7 +12,7 @@ from aries_cloudcontroller import (
 from authentication.cert_authentication import (load_p12, sign_challenge)
 from authentication.x509_verification import (verify_sign, verify_cert, create_challenge)
 from utils.tools import (decode, extract_oob)
-from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status)
+from services.wallet import (get_dids, create_did, get_public_did, assign_public_did, get_did_endpoint, set_did_endpoint, get_credential, get_credentials, delete_credential, get_revocation_status, rotate_keypair)
 from services.ledger import (register_nym)
 from services.out_of_band import (create_invitation, receive_invitation, delete_invitation)
 from services.connections import (get_connections, get_connection, delete_connection, get_metadata, set_metadata)
@@ -27,7 +27,7 @@ from services.present_proof import (get_pres_record, get_pres_records, delete_pr
 
 app = Quart(__name__)
 
-# Global controller (aca-py client)
+# Globals
 port = None
 base_url = None
 client: AcaPyClient = None
@@ -56,7 +56,6 @@ async def startup():
             admin_insecure=True
         )
         print(f"Client created with base_url: {base_url}")
-
     except Exception as e:
         print(f"Error creating client: {e}")
         sys.exit(1)
@@ -65,12 +64,10 @@ async def startup():
 @app.while_serving
 async def serving():
     print("Starting CLI...")
-    
     stop_event = asyncio.Event()
     cli_task = asyncio.create_task(cli(stop_event))
     try:
        yield
-
     finally:
         print("Shutting down CLI...")
         stop_event.set()
@@ -363,6 +360,14 @@ async def cli(stop_event: asyncio.Event):
                 print(result)
             except Exception as e:
                 print(f"Error setting DID endpoint: {e}")
+        elif command.startswith("rotate"):
+            try:
+                print("Enter DID:")
+                did = input()
+                result = await rotate_keypair(client, did)
+                print(result)
+            except Exception as e:
+                print(f"Error rotating keypair: {e}")
 
         # OOB
         elif command.lower() == "url":
@@ -953,7 +958,7 @@ async def cli(stop_event: asyncio.Event):
                 print(f"Error verifying presentation: {e}")
 
         else:
-            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
+            print("Unknown command. Try: dids, create did, public did, register did, assign did, endpoint, set endpoint, rotate, url, create inv, receive inv, accept inv, delete inv, accept didx req, reject didx, conns, conn, conn metadata, set conn metadata, delete conn, ping, message, schemas, schema, publish schema, cred defs, cred def, create cred def, rev regs, rev reg, active rev reg, rev reg issued, revoke, rev status, vc records, vc record, delete vc record, vc offer, vc request, issue vc, store vc, vc problem, vcs, vc, delete vc, vp records, vp record, delete vp record, matching vc, vp problem, send vp, vp proposal, vp request, verify")
         
 # Main
 if __name__ == "__main__":

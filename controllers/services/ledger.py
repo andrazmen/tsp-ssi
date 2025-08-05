@@ -3,5 +3,4 @@ async def register_nym(client, did, verkey):
         did = did,
         verkey = verkey
     )
-
     return result

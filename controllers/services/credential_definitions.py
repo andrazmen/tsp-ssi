@@ -27,8 +27,6 @@ async def create_cred_def(client, issuer_id, schema_id):
                 tag = "default"
             ),
             options = CredDefPostOptions(
-               #create_transaction_for_endorser,
-               #endorser_connection_id,
                revocation_registry_size = 1000,
                support_revocation = True 
             )
