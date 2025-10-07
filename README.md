@@ -5,7 +5,7 @@ Security module based on Self-Sovereign Identity concepts, developed for a proje
 Clone repository:
 
 ```bash
-git clone https://git.e5.ijs.si/andrazm/tsp-ssi.git
+git clone https://github.com/andrazmen/tsp-ssi.git
 ```
 
 ## A Cloud Agent Python
