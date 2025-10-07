@@ -2,14 +2,14 @@
 cd aca-py
 source .venv_von_network/bin/activate
 cd von-network
-./manage start 193.138.1.21 WEB_SERVER_HOST_PORT=80 "LEDGER_INSTANCE_NAME=My Ledger" --logs
+./manage start WEB_SERVER_HOST_PORT=80 "LEDGER_INSTANCE_NAME=My Ledger" --logs
 ```
 
 ```
 cd aca-py
 source .venv_tails-server/bin/activate
 cd indy-tails-server/docker
-./manage start 193.138.1.21 --logs
+./manage start --logs
 ```
 
 ```
@@ -40,26 +40,26 @@ aca-py start --arg-file args/ta.yaml
 cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
-python3 controller.py --config config/user_config.py 
+python3 controller.py --config config/user_config.py
 ```
 
 ```
 cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
-python3 controller.py --config config/agg_config.py 
+python3 controller.py --config config/agg_config.py
 ```
 
 ```
 cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
-python3 vcs.py --config config/vcs_config.py 
+python3 vcs.py --config config/vcs_config.py
 ```
 
 ```
 cd aca-py
 source .venv_cloudcontroller/bin/activate
 cd controllers
-python3 controller.py --config config/ta_config.py 
+python3 controller.py --config config/ta_config.py
 ```

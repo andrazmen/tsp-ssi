@@ -1,10 +1,10 @@
 label: Alice
 inbound-transport:
-- [http, 0.0.0.0, 8020]
+  - [http, 0.0.0.0, 8020]
 outbound-transport: http
 admin-insecure-mode: true
 admin: [0.0.0.0, 8021]
-genesis-url: http://193.138.1.21/genesis
+genesis-url: http://localhost/genesis
 no-ledger: true #WITHOUT LEDGER
 seed: Alice000000000000000000000000000
 wallet-key: secret

@@ -1,4 +1,7 @@
 ## Introduction
+
+Security module based on Self-Sovereign Identity concepts, developed for a project at the Jožef Stefan Institute and for my master’s thesis.
+
 Clone repository:
 
 ```bash
@@ -6,43 +9,52 @@ git clone https://git.e5.ijs.si/andrazm/tsp-ssi.git
 ```
 
 ## A Cloud Agent Python
+
 Using pip package.
 
 Create virutal environment:
+
 ```bash
 python3 -m venv .venv_aca-py
 source .venv_aca-py/bin/activate
 ```
 
 Install package:
+
 ```bash
 pip install acapy-agent==1.1.1
 ```
 
 ## Aries CloudController
+
 Clone repository:
+
 ```bash
 git clone https://github.com/didx-xyz/aries-cloudcontroller-python.git
 ```
 
 Create virtual environment:
+
 ```bash
 python3 -m venv .venv_cloudcontroller
 source .venv_cloudcontroller/bin/activate
 ```
 
 Change directory:
+
 ```bash
 cd aries-cloudcontroller-python/
 ```
 
 Install requirements and package in editable mode (For now, in future it will probably be installed directly, not in editable mode):
+
 ```bash
-pip install -r requirements.txt 
+pip install -r requirements.txt
 pip install --no-cache-dir -e .
 ```
 
 Downgrade aiohttp, because of event_loop errors:
+
 ```bash
 pip uninstall aiohttp
 
@@ -50,24 +62,29 @@ pip install aiohttp==3.9.4
 ```
 
 Install Quart for webhook server:
+
 ```bash
 pip install Quart==0.20.0
 ```
 
 ## VON Network
+
 Using docker.
 
 Clone repository:
+
 ```bash
 git clone https://github.com/bcgov/von-network.git
 ```
 
 Change directory:
+
 ```bash
 cd von-network
 ```
 
 Build and start docker image:
+
 ```bash
 ./manage build
 
@@ -76,53 +93,62 @@ Build and start docker image:
 ```
 
 ## Indy Tails Server
+
 Using docker.
 
 Clone repository:
+
 ```bash
 git clone https://github.com/bcgov/indy-tails-server.git
 ```
 
 Change directory:
+
 ```bash
 cd indy-tails-server/docker
 ```
 
 Build docker image:
+
 ```bash
 ./manage build
 ```
 
-Set *NGROK_AUTHTOKEN*:
+Set _NGROK_AUTHTOKEN_:
+
 ```bash
 docker-compose.yml
 NGROK_AUTHTOKEN=<your token here>
 ```
 
 Start docker container:
+
 ```bash
 ./manage start
 ./manage logs
 ```
 
 ## Running a code
+
 ## Starting von-network and indy tails server
+
 VON-network is a development and test Hyperledger Indy Node network. Indy Tails Server is file server that is designed to receive, store and serve Hyperledger Indy Tails files, essential for credential revocation.
 
 ```bash
 cd von-network
 
-./manage start 193.138.1.21 WEB_SERVER_HOST_PORT=80 "LEDGER_INSTANCE_NAME=My Ledger" --logs
+./manage start WEB_SERVER_HOST_PORT=80 "LEDGER_INSTANCE_NAME=My Ledger" --logs
 ```
 
 ```bash
 cd indy-tails-server/docker
 
-./manage start 193.138.1.21 --logs
+./manage start --logs
 ```
 
 ## Starting aca-py agents
-Directory ```args``` contains ```.yaml``` files with start up parameters for ACA-Py agents. To start ```user``` digital agent ```--arg-file``` argument is needed to specify the path to a ACA-Py arguments file. To run ACA-py agent that connects to previously started von-network, the DID needs to be published. The easiest way to do this is to use von-network web server running on ```http://193.138.1.21```, where DID is registered from the seed defined in argument file under parameter ```seed```.
+
+Directory `args` contains `.yaml` files with start up parameters for ACA-Py agents. To start `user` digital agent `--arg-file` argument is needed to specify the path to a ACA-Py arguments file. To run ACA-py agent that connects to previously started von-network, the DID needs to be published. The easiest way to do this is to use von-network web server running on `http://localhost`, where DID is registered from the seed defined in argument file under parameter `seed`.
 
 ```bash
 source .venv_aca-py/bin/activate
@@ -131,19 +157,21 @@ aca-py start --arg-file args/user.yaml
 ```
 
 ## Starting controller
-Controller is business logic that controls ACA-py instance through HTTP requests and webhook notifications. In order to run controller logic, ACA-py agent need to run! 
 
-Directory ```controllers``` contains controller logic. File ```controller.py``` implements universal controller used for User, Aggregator, EDO and Technical Aggregator instances. VCS has its own controller logic wrapped in ```vcs.py``` file. Directory ```config``` contains configuration files for controllers. Accordingly, ```--config``` argument is required to specify the path to a specific configuration file.
+Controller is business logic that controls ACA-py instance through HTTP requests and webhook notifications. In order to run controller logic, ACA-py agent need to run!
+
+Directory `controllers` contains controller logic. File `controller.py` implements universal controller used for User, Aggregator, EDO and Technical Aggregator instances. VCS has its own controller logic wrapped in `vcs.py` file. Directory `config` contains configuration files for controllers. Accordingly, `--config` argument is required to specify the path to a specific configuration file.
 
 ```bash
 source .venv_cloudcontroller/bin/activate
 
 cd controllers
 
-python controller.py --config config/user_config.py 
+python controller.py --config config/user_config.py
 ```
 
 ### Universal controller
+
 Universal controller provides following CLI commands:
 
 ```
@@ -154,7 +182,7 @@ Universal controller provides following CLI commands:
 - register did              registers DID on public ledger
 - endpoint                  returns the endpoint of specific DID
 - set endpoint              sets new endpoint of specific DID
-- rotate                    rotate keys of specific DID 
+- rotate                    rotate keys of specific DID
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -204,6 +232,7 @@ Universal controller provides following CLI commands:
 ```
 
 ### VCS controller
+
 VCS controller provides following CLI commands:
 
 ```
@@ -214,7 +243,7 @@ VCS controller provides following CLI commands:
 - register did              registers DID on public ledger
 - endpoint                  returns the endpoint of specific DID
 - set endpoint              sets new endpoint of specific DID
-- rotate                    rotate keys of specific DID 
+- rotate                    rotate keys of specific DID
 - url                       returns the URL of last created invitation
 - create inv                creates new connection invitation and displays invitation URL
 - receive inv               takes invitation URL and extracts connection invitation
@@ -225,7 +254,7 @@ VCS controller provides following CLI commands:
 - conns                     lists all connections (active and inactive)
 - conn                      returns specific connection and its data
 - conn metadata             returns connection metadata of specific connection
-- set conn metadata         sets connection metadata 
+- set conn metadata         sets connection metadata
 - delete conn               removes connection so its no longer usable (can't send or receive any messages or requests)
 - ping                      sends trust ping over selected connection
 - message                   sends message over connection using Basic Message protocol
@@ -239,6 +268,7 @@ VCS controller provides following CLI commands:
 ```
 
 ## ACS and MQTT access control
+
 Access control service (ACS) deployment is accessible at the following location: https://git.e5.ijs.si/dusan/tsp.git. Repository includes instructions to generate and deploy Certificate Authority and to make server certificate for the ACS server and user certificate for clients.
 
 In ACS code, authorization engine for MQTT protocol is added, supporting SSI credentials. Based on SSI credential support, access policies are defined.
@@ -246,6 +276,7 @@ In ACS code, authorization engine for MQTT protocol is added, supporting SSI cre
 Repository includes instructions for installing, patching, configuring and running Mosquitto MQTT broker.
 
 ### Starting ACS
+
 ```bash
 source .venv_tsp/bin/activate
 cd tsp
@@ -255,6 +286,7 @@ python acs/acs.py --keystore=CA-si/server-certificates/andraz.e5.ijs.si.p12 --ss
 ```
 
 ### Starting MQTT broker
+
 ```bash
 sudo systemctl start mosquitto
 
@@ -264,6 +296,7 @@ sudo tail -f /var/log/mosquitto/mosquitto.log
 ```
 
 #### Testing MQTT
+
 **CONTROL**
 
 Subscribe/read request from RM:

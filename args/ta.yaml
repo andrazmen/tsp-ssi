@@ -19,7 +19,7 @@ debug-webhooks: true
 #connections-invite: true #connection protocol invitation
 #invite-label: test2-invitation
 #invite-multi-use: true
-#invite-public: true #all created invitations will use public DID 
+#invite-public: true #all created invitations will use public DID
 #invite-metadata-json: '{"accept": ["didcomm/aip1", "didcomm/aip2;env=rfc19"], "alias": "test2", "goal": "DID exchange", "goal_code": "did-exchange", "handshake_protocols": ["https://didcomm.org/didexchange/1.1"], "my_label": "Invitation for DID exchange", "protocol_version": "1.1", "use_public_did": true}'
 #test-suite-endpoint: "<endpoint>"
 #auto-accept-invites: true
@@ -60,7 +60,7 @@ monitor-revocation-notification: true # Specifies that aca-py will emit webhooks
 #ledger-pool-name: "<ledger-pool-name>"
 #genesis-transactions: "<genesis-transactions>"
 #genesis-file: "<genesis-file>"
-genesis-url: http://193.138.1.21/genesis
+genesis-url: http://localhost/genesis
 #no-ledger: true
 #read-only-ledger: false
 #ledger-keepalive: 5
@@ -95,7 +95,7 @@ auto-provision: true #If the requested profile does not exist, initialize it wit
 #TRANSPORT
 #no-transport: false
 inbound-transport:
-- [http, 0.0.0.0, 8050]
+  - [http, 0.0.0.0, 8050]
 outbound-transport: http
 #image-url: "<image-url>"
 #max-message-size: "<message-size>"

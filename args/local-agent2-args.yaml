@@ -1,10 +1,10 @@
 label: Bob
 inbound-transport:
-- [http, 0.0.0.0, 8030]
+  - [http, 0.0.0.0, 8030]
 outbound-transport: http
 admin-insecure-mode: true
 admin: [0.0.0.0, 8031]
-genesis-url: http://193.138.1.21/genesis
+genesis-url: http://localhost/genesis
 no-ledger: true #WITHOUT LEDGER
 seed: Bob00000000000000000000000000000
 wallet-key: secret
